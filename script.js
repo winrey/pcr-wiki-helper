@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         图书馆期望计算器
+// @name         图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      0.1.0
-// @description  辅助计算期望
+// @version      0.1.1
+// @description  辅助计算所需体力，总次数等等
 // @author       Winrey
 // @license      MIT
 // @updateURL    https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@master/script.js
@@ -12,7 +12,13 @@
 // @run-at       document-start
 // @connect      cdn.jsdelivr.net
 // @match        *://pcredivewiki.tw/Armory
-// @grant        none
+// @grant        unsafeWindow
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_info
+// @grant        GM.getValue
+// @grant        GM.setValue
+// @grant        GM.info
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@master/js/solver.js
 // ==/UserScript==
