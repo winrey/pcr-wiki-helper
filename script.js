@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      0.1.1
+// @version      0.2.1
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey
 // @license      MIT
@@ -135,12 +135,24 @@
             };
         }
 
-        function showResult(data) {
+        const BOUNS_KEY = "___bouns";
+
+        function askBouns() {
+            const bouns = parseInt(prompt("请输入关卡倍数（如n3，n2等，默认为1倍）") || "1") || 1;
+            sessionStorage.setItem(BOUNS_KEY, bouns);
+            return bouns;
+        }
+
+        function getBouns() {
             let bouns = parseInt(sessionStorage.getItem("___bouns"));
             if (!bouns) {
-                bouns = parseInt(prompt("请输入关卡倍数（如n3，n2等，默认为1倍）") || "1") || 1;
-                sessionStorage.setItem("___bouns", bouns);
+                bouns = askBouns();
             }
+            return bouns
+        }
+
+        function showResult(data) {
+            let bouns = getBouns();
             const lines = [];
             lines.push(`总体力需求：${Math.round(data.total / bouns)}`);
             lines.push("----------------");
@@ -162,11 +174,16 @@
 
         function createBtn(){
             const calcBtn = $.parseHTML(
-                '<div id="calc-btn" class="armory-function scroll-fixed-bottom" style="right:130px; filter: hue-rotate(240deg);"><button class="pcbtn primary"> 计算<br>结果 </button></div>'
+                '<div id="calc-btn" class="armory-function scroll-fixed-bottom" style="right:130px; filter: hue-rotate(120deg);"><button class="pcbtn primary"> 计算<br>结果 </button></div>'
+            );
+            const bounsBtn = $.parseHTML(
+                '<div id="bouns-btn" class="armory-function scroll-fixed-bottom" style="right:200px; filter: hue-rotate(240deg);"><button class="pcbtn primary"> 修改<br>倍数 </button></div>'
             );
             $("#app .container").append(calcBtn);
+            $("#app .container").append(bounsBtn);
             console.log($("#scroll-fixed-bottom").html());
             $("#calc-btn").click(handleClickCalcBtn);
+            $("#bouns-btn").click(askBouns);
         }
         createBtn();
     });
