@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.0.2
+// @version      1.0.3
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey
 // @license      MIT
@@ -187,7 +187,7 @@
             const table = genTable(data.map.filter(m => m.times));
             const comment = $.parseHTML('<a href>说明</a>');
             const commentLines = [];
-            commentLines.push("推荐使用方法：按照列表顺序刷图，数量不要超过「适用」和「推荐」两者的最大值，完成后修改数量，重新根据新情景计算。");
+            commentLines.push("推荐使用方法：按照列表顺序刷图，数量不要超过「适用」和「推荐」两者的最小值，完成后修改数量，重新根据新情景计算。");
             commentLines.push("");
             commentLines.push("注意：如果您尚缺好感，请考虑以1,6,11次扫荡为单位刷图，这样可以好感获得最大化。");
             commentLines.push("");
