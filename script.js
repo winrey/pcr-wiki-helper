@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.1.0
+// @version      1.1.2
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey
 // @license      MIT
@@ -29,6 +29,14 @@
     $(document).ready(function() {
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
+        }
+
+        function selectNumInOnePage(num) {
+            const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
+            if (num)
+                $select.val(1000).trigger('change').trigger('click');  // 这个不能用，和VUE有关系
+            else
+                return $select.val();
         }
 
         function toPage(num) {
@@ -332,6 +340,15 @@
         async function handleClickCalcBtn() {
             autoSwitch2MapList();
             await sleep(1000);
+            // selectNumInOnePage(1000)
+            // await sleep(5000);
+            if (selectNumInOnePage() != "1000") {
+                if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
+                    // selectNumInOnePage(1000);
+                    // alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
+                    return;
+                }
+            }
             const data = await getMapData();
             console.log("data", data);
             const result = calcResult(data);
@@ -351,7 +368,7 @@
 
         function btnFactory(content, colorRotate, onClick) {
             const btn = $.parseHTML(`
-                <div class="armory-function" style="padding: 1vh; overflow: auto; filter: hue-rotate(${colorRotate}deg);">
+                <div class="armory-function" style="padding: 0 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
                     <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
                 </div>
             `);
@@ -365,8 +382,10 @@
                     position: fixed;
                     right: 130px;
                     bottom: 0;
+                    padding: 1%;
                     z-index: 1030;
                     display: flex;
+                    overflow: visible;
                 "></div>
             `);
             const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
@@ -381,15 +400,6 @@
         function changeBtnGroup() {
             const group = $("#helper--bottom-btn-group");
             group.html("");
-            const btnFactory = (content, colorRotate, onClick) => {
-                const btn = $.parseHTML(`
-                    <div class="armory-function" style="padding: 1vh; overflow: auto; filter: hue-rotate(${colorRotate}deg);">
-                        <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
-                    </div>
-                `);
-                $(btn).click(onClick);
-                return btn;
-            };
             const fastModifyBtn = btnFactory("快速<br>修改", 188, handleFastModifyBtn);
             const bounsBtn = btnFactory("修改<br>倍数", 216, askBouns);
             const lastResultBtn = btnFactory("上次<br>结果", 144, () => showModal());
