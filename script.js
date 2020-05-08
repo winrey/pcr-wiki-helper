@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.0.3
+// @version      1.1.0
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey
 // @license      MIT
@@ -68,9 +68,9 @@
             const data = [];
             toPage(1);
             let page = 1;
-            await sleep(100);
+            await sleep(20);
             do {
-                await sleep(100);
+                await sleep(20);
                 $table = $(".mapDrop-table:not(.helper)");
                 const pageData = $table.find("tr")
                   .toArray()
@@ -158,32 +158,6 @@
 
         function showResult(data) {
             const bouns = getBouns();
-            /*
-            const lines = [];
-            lines.push(`总体力需求：${Math.round(data.total / bouns)}`);
-            lines.push("----------------");
-            lines.push("关卡 | 有效期望 | 有效次数 | 推荐次数 | 最大次数 | 所在页数");
-            data.map.filter(m => m.times).forEach(m => {
-                const cols = [];
-                const push = (content, width) => {
-                    content = String(content);
-                    if (width && content.length < width) {
-                        const space = "_";
-                        content = space.repeat(Math.floor((width - content.length) / 2)) + content;
-                        content = content.padEnd(width, space);
-                    }
-                    cols.push(content);
-                };
-                push(m.name, 5);
-                push(m.effective, 9);
-                push(Math.ceil(m.min / bouns), 10);
-                push(Math.ceil((m.times || 0) / bouns), 9);
-                push(Math.ceil(m.max / bouns), 10);
-                push(m.page, 10);
-                lines.push(cols.join("|"));
-            });
-            alert(lines.join("\n"));
-            */
             const table = genTable(data.map.filter(m => m.times));
             const comment = $.parseHTML('<a href>说明</a>');
             const commentLines = [];
@@ -198,7 +172,7 @@
             commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
             commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
             commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
-            $(comment[0]).click(() => alert(commentLines.join('\n')));
+            $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, table);
         }
 
@@ -240,7 +214,7 @@
                 <div id="helper--modal" style="${containerStyle}">
                     <div id="helper--modal-mask" style="${maskStyle}"></div>
                     <div class="breadcrumb" style="${boxStyle}">
-                        <div id="helper--modal-content" style="${contentStyle}">${content.join()}</div>
+                        <div id="helper--modal-content" style="${contentStyle}">${content.join("")}</div>
                         <button id="helper--modal-close" type="button" class="pcbtn mr-3"> 关闭 </button>
                     </div>
                 </div>
@@ -271,7 +245,7 @@
                             <span class="oddTri"></span>
                             <span class="text-center py-1 d-block"> ${item.count} </span>
                         </div>
-                    `).join()}
+                    `).join("")}
                 </div>
             `;
             return html;
@@ -307,7 +281,7 @@
                                     ${genItemsGroup(m.items)}
                                 </td>
                             </tr>
-                        `).join()}
+                        `).join("")}
                     </tbody>
                 </table>
             `.trim();
@@ -339,8 +313,9 @@
         function showModal(...content) {
             $("#helper--modal").css("opacity", 1);
             $("#helper--modal").css("pointer-events", "");
-            if (content.length) {
-                $("#helper--modal-content").html(content.join());
+            if (content && content.length) {
+                debugger
+                $("#helper--modal-content").html(content.join(""));
             }
         }
 
@@ -362,26 +337,69 @@
             const result = calcResult(data);
             console.log("result", result);
             showResult(result);
+            changeBtnGroup();
         }
 
-        function createBtn() {
-            const calcBtn = $.parseHTML(`
-                <div id="helper--calc-btn" class="armory-function scroll-fixed-bottom" style="right:130px; filter: hue-rotate(120deg);">
-                    <button class="pcbtn primary"> 计算<br>结果 </button>
-                </div>
-            `);
-            const bounsBtn = $.parseHTML(`
-                <div id="helper--bouns-btn" class="armory-function scroll-fixed-bottom" style="right:200px; filter: hue-rotate(240deg);">
-                    <button class="pcbtn primary"> 修改<br>倍数 </button>
-                </div>
-            `);
-            $("#app .container").append(calcBtn);
-            $("#app .container").append(bounsBtn);
-            console.log($("#scroll-fixed-bottom").html());
-            $("#helper--calc-btn").click(handleClickCalcBtn);
-            $("#helper--bouns-btn").click(askBouns);
+        async function handleFastModifyBtn() {
+            const $table = $(".mapDrop-table:not(.helper)");
+            if ($table && $table.find("thead button").length) {
+                $table.find("thead button")[0].click();
+            } else {
+                alert("现在还不是地图掉落页面呢～");
+            }
         }
-        createBtn();
+
+        function btnFactory(content, colorRotate, onClick) {
+            const btn = $.parseHTML(`
+                <div class="armory-function" style="padding: 1vh; overflow: auto; filter: hue-rotate(${colorRotate}deg);">
+                    <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
+                </div>
+            `);
+            $(btn).click(onClick);
+            return btn;
+        };
+
+        function createBtnGroup() {
+            const group = $.parseHTML(`
+                <div id="helper--bottom-btn-group" class="scroll-fixed-bottom" style="
+                    position: fixed;
+                    right: 130px;
+                    bottom: 0;
+                    z-index: 1030;
+                    display: flex;
+                "></div>
+            `);
+            const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
+            const bounsBtn = btnFactory("修改<br>倍数", 180, askBouns);
+            const calcBtn = btnFactory("计算<br>结果", 90, handleClickCalcBtn);
+            $(group).append(fastModifyBtn);
+            $(group).append(bounsBtn);
+            $(group).append(calcBtn);
+            $("#app .container").append(group);
+        }
+
+        function changeBtnGroup() {
+            const group = $("#helper--bottom-btn-group");
+            group.html("");
+            const btnFactory = (content, colorRotate, onClick) => {
+                const btn = $.parseHTML(`
+                    <div class="armory-function" style="padding: 1vh; overflow: auto; filter: hue-rotate(${colorRotate}deg);">
+                        <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
+                    </div>
+                `);
+                $(btn).click(onClick);
+                return btn;
+            };
+            const fastModifyBtn = btnFactory("快速<br>修改", 188, handleFastModifyBtn);
+            const bounsBtn = btnFactory("修改<br>倍数", 216, askBouns);
+            const lastResultBtn = btnFactory("上次<br>结果", 144, () => showModal());
+            const calcBtn = btnFactory("重新<br>计算", 72, handleClickCalcBtn);
+            group.append(fastModifyBtn);
+            group.append(bounsBtn);
+            group.append(lastResultBtn);
+            group.append(calcBtn);
+        }
+        createBtnGroup();
         createModal();
     });
 })();
