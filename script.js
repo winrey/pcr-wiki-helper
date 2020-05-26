@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.1.2
 // @description  辅助计算所需体力，总次数等等
-// @author       Winrey
+// @author       Winrey,colin
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
@@ -48,14 +48,14 @@
 
         async function getMapData() {
             function rowParser($tr, page, index) {
-                function parseItem($item) {
+                 function parseItem($item) {
                     const url = $($item.find("a")[0]).attr("href");
                     const name = $($item.find("img")[0]).attr("title");
-                    const img = $($item.find("img")[0]).attr("src");
+                    const img = $($item.find("img")[0]).attr("src")
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
-                    const count = parseInt($($item.find(".py-1")[0]).text());
+                    const count=parseInt($($item.find(".py-1")[0]).text());
                     return { url: url, name: name, img: img, odd: odd, count: count };
-                }
+                    }
                 const children = $tr.children().map(function(){return $(this)});
                 const name = children[0].text();
                 const requirement = parseInt(children[1].text());
@@ -231,8 +231,17 @@
             $("#helper--modal-close").click(() => hideModal());
             $("#helper--modal-mask").click(() => hideModal());
         }
-
+        function comparisonItemlStorage(items){
+            for(let item of items){
+            try{
+               item.count=`有`+ ~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
+                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'')+"缺"+item.count
+                }catch(e){}
+            }
+            return items
+}
         function genItemsGroup(items) {
+            items=comparisonItemlStorage (items)
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item => `
@@ -342,10 +351,10 @@
             await sleep(1000);
             // selectNumInOnePage(1000)
             // await sleep(5000);
-            if (selectNumInOnePage() != "1000") {
+              if (selectNumInOnePage() != "1000") {
                 if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
-                    // selectNumInOnePage(1000);
-                    // alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
+                     //selectNumInOnePage(1000);
+                     //alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
                     return;
                 }
             }
