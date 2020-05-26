@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.1.2
+// @version      1.2.1
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey,colin
 // @license      MIT
