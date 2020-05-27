@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.1.2
+// @version      1.2.4
 // @description  辅助计算所需体力，总次数等等
-// @author       Winrey,colin
+// @author       Winrey
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
@@ -30,11 +30,23 @@
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
-
+    function hook(object, attr) {
+        var func = object[attr]
+        object[attr] = function () {
+            console.log('hooked', object, attr)
+            var ret = func.apply(object, arguments)
+            debugger
+            return ret
+        }
+    }
+        //hook(a,'data')
         function selectNumInOnePage(num) {
             const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
-            if (num)
-                $select.val(1000).trigger('change').trigger('click');  // 这个不能用，和VUE有关系
+            if (num){
+                $select.trigger('change');
+                $select.val(1000)[0][4].click()//.trigger('click');//.selected = true;
+                //$select.trigger('change')//.trigger('click');  // 这个不能用，和VUE有关系
+            }
             else
                 return $select.val();
         }
@@ -48,13 +60,15 @@
 
         async function getMapData() {
             function rowParser($tr, page, index) {
-                 function parseItem($item) {
+                    function parseItem($item) {
                     const url = $($item.find("a")[0]).attr("href");
                     const name = $($item.find("img")[0]).attr("title");
-                    const img = $($item.find("img")[0]).attr("src")
+                    const img = $($item.find("img")[0]).attr("src");
+                    const requireItemID=img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
-                    const count=parseInt($($item.find(".py-1")[0]).text());
-                    return { url: url, name: name, img: img, odd: odd, count: count };
+                    let count=parseInt($($item.find(".py-1")[0]).text());
+
+                   return { url: url, name: name, img: img, odd: odd, count: count };
                     }
                 const children = $tr.children().map(function(){return $(this)});
                 const name = children[0].text();
@@ -231,45 +245,68 @@
             $("#helper--modal-close").click(() => hideModal());
             $("#helper--modal-mask").click(() => hideModal());
         }
-        function comparisonItemlStorage(items){
-            for(let item of items){
-            try{
-               item.count=`有`+ ~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
-                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'')+"缺"+item.count
-                }catch(e){}
-            }
-            return items
-}
+ 
         function genItemsGroup(items) {
-            items=comparisonItemlStorage (items)
+            const old=window.performance.now()
+            items=boundLocatStrong(items)// ${item.Unique?`唯一`:``}
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item => `
-                        <div class="p-2 text-center mapDrop-item mr-2">
+                        <div class="p-2 text-center mapDrop-item mr-2" style='${item.Unique?`background-color: #ff94fd;`:``}'>
                             <a
                                 href="${item.url}"
                                 class=""
                                 target="_blank"
                             >
+
                                 <img
                                     width="70"
-                                    title="${item.name}"
+                                    title="${item.name}${item.count.match(/\d+/g)[1]>0?' 总需'+(~~item.count.match(/\d+/g)[1]+~~item.count.match(/\d+/g)[0]):''}${item.Unique?` 该图限定`:``}"
                                     src="${item.img}"
+                                    style="opacity:${item.count.match(/\d+/g)[1]>0?1:0.4};"
+
                                     class="aligncenter"
                                 >
                             </a>
                             <h6 class="dropOdd text-center">${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
                             <span class="oddTri"></span>
-                            <span class="text-center py-1 d-block"> ${item.count} </span>
+                            <span class="text-center py-1 d-block"
+                                  style="opacity:${item.count.match(/\d+/g)[1]>0?1:0.4};"
+                             > ${item.count.match(/\d+/g)[1]>0?item.count:`已满`} </span>
                         </div>
                     `).join("")}
                 </div>
             `;
             return html;
         }
+        function boundLocatStrong(items){
+            for(let item of items){
+            try{
+                item.count=`有`+ ~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
+                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'')+"缺"+item.count
+            }catch(e){
+                item.count=`有0缺0`
+            }
+            }
+            return items
+}
+        function uniqueItem(mapData){
+            let sortData=JSON.stringify(mapData);
+            for(let i=0;i<mapData.length;i++){
+              for(let item of mapData[i].items){
+                             if( item.count>0&&[...sortData.matchAll(new RegExp(item.name,`g`))].length<2){
+                                 mapData[i].IsuniqueItem=true
+                                 item.Unique=true
+                             }
 
+              }
+
+        }
+        mapData.sort((a,b)=>{return -(a.IsuniqueItem||b.IsuniqueItem||(Math.round(a.effective * 100)-Math.round(b.effective * 100)))})
+        }
         function genTable(mapData) {
-            const bouns = getBouns();
+            uniqueItem(mapData);
+            const bouns = getBouns();//
             const html = `
                 <table width="1000px" class="table table-bordered mapDrop-table helper">
                     <thead>
@@ -288,6 +325,17 @@
                                     <a href="#" class="helper--nav-to-level" data-page="${m.page}" data-index="${m.index}">
                                         ${m.name}
                                     </a>
+                                 ${m.IsuniqueItem?`<div
+style='
+text-align: center;
+border: 2px solid #eb0000;
+background: #ffb3b3;
+width: 35.9px;
+border-radius: 25px;
+font-size: 1.1vw;'>
+优先</div>`:``}
+
+
                                 </td>
                                 <td> ${m.requirement} </td>
                                 <td> ${Math.round(m.effective * 100)}% </td>
@@ -351,10 +399,10 @@
             await sleep(1000);
             // selectNumInOnePage(1000)
             // await sleep(5000);
-              if (selectNumInOnePage() != "1000") {
+            if (selectNumInOnePage() != "1000") {
                 if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
-                     //selectNumInOnePage(1000);
-                     //alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
+                     selectNumInOnePage(1000);
+                     alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
                     return;
                 }
             }
