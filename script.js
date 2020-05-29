@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.2.4
+// @version      1.2.5
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey,colin
 // @license      MIT
@@ -30,22 +30,18 @@
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
-    function hook(object, attr) {
-        var func = object[attr]
-        object[attr] = function () {
-            console.log('hooked', object, attr)
-            var ret = func.apply(object, arguments)
-            debugger
-            return ret
-        }
-    }
-        //hook(a,'data')
-        function selectNumInOnePage(num) {
+        function selectNumInOnePage(num,event) {
+            //hook(unsafeWindow,'forTrusted')
             const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
             if (num){
-                $select.trigger('change');
-                $select.val(1000)[0][4].click()//.trigger('click');//.selected = true;
+                //$select.trigger('change');
+                //$select.val(1000).click()//select.val(1000)[0][4].trigger('click');//因为Event.selected = true;被验证了
                 //$select.trigger('change')//.trigger('click');  // 这个不能用，和VUE有关系
+                //const changeEvent = document.createEvent ("HTMLEvents");
+                //changeEvent.initEvent("change");//(准备废弃的api)
+                const changeEvent = new Event('change');
+                $select.val(1000)
+                $select[0].dispatchEvent(changeEvent)
             }
             else
                 return $select.val();
@@ -189,6 +185,7 @@
             commentLines.push("");
             commentLines.push("---表头说明---");
             commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。");
+            commentLines.push("『优先』标识。粉框装备是全地图唯一最高效率。请无脑刷满粉框。");
             commentLines.push("『需求』关卡需求。图中所需装备总数。");
             commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
             commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
@@ -252,7 +249,7 @@
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item => `
-                        <div class="p-2 text-center mapDrop-item mr-2" style='${item.Unique?`background-color: #ff94fd;`:``}'>
+                        <div class="p-2 text-center mapDrop-item mr-2" style='${item.Unique&&`background-color: #ff94fd;    border-radius: 0.7vw;`||``}'>
                             <a
                                 href="${item.url}"
                                 class=""
@@ -261,18 +258,18 @@
 
                                 <img
                                     width="70"
-                                    title="${item.name}${item.count.match(/\d+/g)[1]>0?' 总需'+(~~item.count.match(/\d+/g)[1]+~~item.count.match(/\d+/g)[0]):''}${item.Unique?` 该图限定`:``}"
+                                    title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
                                     src="${item.img}"
-                                    style="opacity:${item.count.match(/\d+/g)[1]>0?1:0.4};"
+                                    ${!item.count&&`style="opacity:0.4;"`}
 
                                     class="aligncenter"
                                 >
                             </a>
-                            <h6 class="dropOdd text-center">${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
-                            <span class="oddTri"></span>
+                            <h6 class="dropOdd text-center " style='${item.Unique&&`left: 2.3rem;  right: 0;top: 3.6rem; `||``}${!item.count&&`opacity:0.4;`||``}'>${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
+                            <span class="oddTri" ${!!item.Unique&&`style='top: 2.1rem;right: 0vh;left: 2.1rem;bottom: 0vh;'`||``}></span>
                             <span class="text-center py-1 d-block"
-                                  style="opacity:${item.count.match(/\d+/g)[1]>0?1:0.4};"
-                             > ${item.count.match(/\d+/g)[1]>0?item.count:`已满`} </span>
+                                  ${!item.count&&`style="opacity:0.4"`}
+                             > ${item.count&&`总需`+item.count||`已满`} </span>
                         </div>
                     `).join("")}
                 </div>
@@ -282,10 +279,12 @@
         function boundLocatStrong(items){
             for(let item of items){
             try{
-                item.count=`有`+ ~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
-                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'')+"缺"+item.count
+                let p=~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
+                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'');
+                item.information=`有`+p +" 缺"+(item.count)
+                let c=`${item.count&&(item.count+=p)}`
             }catch(e){
-                item.count=`有0缺0`
+                item.count=0
             }
             }
             return items
@@ -310,7 +309,7 @@
             const html = `
                 <table width="1000px" class="table table-bordered mapDrop-table helper">
                     <thead>
-                        <th style="min-width: 67px; vertical-align: baseline;">章节</th>
+                        <th style="min-width: 71px; vertical-align: baseline;">章节</th>
                         <th style="min-width: 67px; vertical-align: baseline;">需求</th>
                         <th style="min-width: 67px; vertical-align: baseline;">效率</th>
                         <th style="min-width: 67px; vertical-align: baseline;">适用</th>
@@ -325,23 +324,24 @@
                                     <a href="#" class="helper--nav-to-level" data-page="${m.page}" data-index="${m.index}">
                                         ${m.name}
                                     </a>
-                                 ${m.IsuniqueItem?`<div
+                                 ${m.IsuniqueItem&&`<div
+title='无脑刷满粉框'
 style='
 text-align: center;
 border: 2px solid #eb0000;
 background: #ffb3b3;
-width: 35.9px;
+width: 2.3rem;
 border-radius: 25px;
-font-size: 1.1vw;'>
-优先</div>`:``}
+font-size: 0.9rem'>
+优先</div>`||``}
 
 
                                 </td>
                                 <td> ${m.requirement} </td>
                                 <td> ${Math.round(m.effective * 100)}% </td>
-                                <td> ${Math.ceil(m.min / bouns)} </td>
-                                <td> ${Math.ceil(m.times / bouns)} </td>
-                                <td> ${Math.ceil(m.max / bouns)} </td>
+                                <td style='opacity:${m.IsuniqueItem&&-1||1};'> ${Math.ceil(m.min / bouns)} </td>
+                                <td style='opacity:${m.IsuniqueItem&&-1||1};'> ${Math.ceil(m.times / bouns)} </td>
+                                <td style='opacity:${m.IsuniqueItem&&-1||1};'> ${Math.ceil(m.max / bouns)} </td>
                                 <td align="center">
                                     ${genItemsGroup(m.items)}
                                 </td>
@@ -400,12 +400,13 @@ font-size: 1.1vw;'>
             // selectNumInOnePage(1000)
             // await sleep(5000);
             if (selectNumInOnePage() != "1000") {
-                if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
-                     selectNumInOnePage(1000);
-                     alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
-                    return;
-                }
+                   selectNumInOnePage(1000);
+                //if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
+                     //alert("请手动设置“全部”需要3秒钟左右。完成后请重新点击“计算结果”。");
+                  //  return;
+                //}
             }
+            //await sleep(10000);
             const data = await getMapData();
             console.log("data", data);
             const result = calcResult(data);
@@ -435,22 +436,27 @@ font-size: 1.1vw;'>
 
         function createBtnGroup() {
             const group = $.parseHTML(`
+
                 <div id="helper--bottom-btn-group" class="scroll-fixed-bottom" style="
                     position: fixed;
-                    right: 130px;
+                    left: 75rem;
+                    right: 0;
+                    top: 14rem;
                     bottom: 0;
-                    padding: 1%;
+                    width: 1rem;
+                    height: 58%;
                     z-index: 1030;
-                    display: flex;
                     overflow: visible;
+                    display: flex;
+                    flex-wrap: wrap;
                 "></div>
             `);
             const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
             const bounsBtn = btnFactory("修改<br>倍数", 180, askBouns);
             const calcBtn = btnFactory("计算<br>结果", 90, handleClickCalcBtn);
+            $(group).append(calcBtn);
             $(group).append(fastModifyBtn);
             $(group).append(bounsBtn);
-            $(group).append(calcBtn);
             $("#app .container").append(group);
         }
 
@@ -461,10 +467,10 @@ font-size: 1.1vw;'>
             const bounsBtn = btnFactory("修改<br>倍数", 216, askBouns);
             const lastResultBtn = btnFactory("上次<br>结果", 144, () => showModal());
             const calcBtn = btnFactory("重新<br>计算", 72, handleClickCalcBtn);
-            group.append(fastModifyBtn);
-            group.append(bounsBtn);
-            group.append(lastResultBtn);
             group.append(calcBtn);
+            group.append(bounsBtn);
+            group.append(fastModifyBtn);
+            group.append(lastResultBtn);
         }
         createBtnGroup();
         createModal();
