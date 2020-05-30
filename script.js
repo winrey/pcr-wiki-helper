@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.2.1
+// @version      1.2.2
 // @description  辅助计算所需体力，总次数等等
-// @author       Winrey,colin
+// @author       Winrey,colin,hymbz
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
@@ -11,6 +11,7 @@
 // @connect      cdn.jsdelivr.net
 // @match        *://pcredivewiki.tw/Armory
 // @grant        unsafeWindow
+// @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_info
@@ -26,17 +27,37 @@
 
     const sleep = time => new Promise(r => setTimeout(r), time);
 
+    GM_addStyle(`
+        #helper--modal-content:not(.drop) input[item-name] {
+            display: none;
+        }
+
+        input[item-name] {
+            width: 6em;
+        }
+
+        #popBox, .modal-backdrop {
+            display: none !important;
+        }
+    `)
+
     $(document).ready(function() {
+        const saveData = () => {
+            document.querySelector('.sticky-top button:nth-child(6)').click();
+        }
+
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
 
         function selectNumInOnePage(num) {
-            const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
-            if (num)
-                $select.val(1000).trigger('change').trigger('click');  // 这个不能用，和VUE有关系
+            const $select = document.querySelector('#app > div.main > div > div.item-box > div.row.mb-3 > div:nth-child(3) > div > div:nth-child(3) > div > div > select');
+            if (num){
+                $select.selectedIndex = 4;
+                $select.dispatchEvent(new Event("change"));
+            }
             else
-                return $select.val();
+                return $select.selectedIndex;
         }
 
         function toPage(num) {
@@ -54,7 +75,8 @@
                     const img = $($item.find("img")[0]).attr("src")
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
                     const count=parseInt($($item.find(".py-1")[0]).text());
-                    return { url: url, name: name, img: img, odd: odd, count: count };
+                    const id = /\d+/.exec(img)[0];
+                    return { url, name, img, odd, count, id };
                     }
                 const children = $tr.children().map(function(){return $(this)});
                 const name = children[0].text();
@@ -223,6 +245,8 @@
                     <div id="helper--modal-mask" style="${maskStyle}"></div>
                     <div class="breadcrumb" style="${boxStyle}">
                         <div id="helper--modal-content" style="${contentStyle}">${content.join("")}</div>
+                        <button id="helper--modal-again" type="button" class="pcbtn mr-3"> 重新计算 </button>
+                        <button id="helper--modal-drop" type="button" class="pcbtn mr-3"> 添加掉落 </button>
                         <button id="helper--modal-close" type="button" class="pcbtn mr-3"> 关闭 </button>
                     </div>
                 </div>
@@ -230,13 +254,18 @@
             $("#app").after(html);
             $("#helper--modal-close").click(() => hideModal());
             $("#helper--modal-mask").click(() => hideModal());
+
+            document.getElementById('helper--modal-again').addEventListener('click', handleClickCalcBtn);
+            document.getElementById('helper--modal-drop').addEventListener('click', () => {
+                document.querySelector('table button:nth-child(1)').click();
+                document.getElementById('helper--modal-content').classList.toggle('drop');
+            });
         }
         function comparisonItemlStorage(items){
             for(let item of items){
-            try{
-               item.count=`有`+ ~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
-                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'')+"缺"+item.count
-                }catch(e){}
+                const num = +new RegExp(`"equipment_id":${item.id},"count":"(\\d+)"`)
+                    .exec(localStorage.itemList)?.[1] || 0;
+                item.count = `${num}/${item.count ? num + item.count : '-' }`;
             }
             return items
 }
@@ -261,6 +290,7 @@
                             <h6 class="dropOdd text-center">${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
                             <span class="oddTri"></span>
                             <span class="text-center py-1 d-block"> ${item.count} </span>
+                            <span><input type="number" class="form-control" item-name="${item.name}"></span>
                         </div>
                     `).join("")}
                 </div>
@@ -294,7 +324,7 @@
                                 <td> ${Math.ceil(m.min / bouns)} </td>
                                 <td> ${Math.ceil(m.times / bouns)} </td>
                                 <td> ${Math.ceil(m.max / bouns)} </td>
-                                <td align="center">
+                                <td align="center" style="width: 60%;">
                                     ${genItemsGroup(m.items)}
                                 </td>
                             </tr>
@@ -319,6 +349,40 @@
                     })
                 }, 200)
             })
+
+            table.querySelectorAll('input[item-name]').forEach(inputDom=>{
+                // 在输入掉落数时同步所有相同装备下的 input 的 value
+                const itemName = inputDom.getAttribute('item-name');
+                inputDom.addEventListener('input',(e) => {
+                    table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                        dom.value = e.srcElement.value;
+                    })
+                });
+                inputDom.addEventListener('keyup',(e) => {
+                    if(e.keyCode===13){
+                        const dropNum = +e.srcElement.value;
+                        // 通过图书馆的快速修改功能来进行库存的修改
+                        const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
+                            .closest('div').querySelector('input');
+                        inputDom.value = +inputDom.value + dropNum;
+                        inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
+                        saveData();
+
+                        // 在修改库存后，修改结果页的库存显示
+                        table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                            dom.value = "";
+                            const itemSpanDom = dom.closest('div').querySelector('span.text-center');
+                            let [num, count] = itemSpanDom.innerText.split('/').map(n => +n);
+                            num += dropNum;
+                            // 不需求装备时
+                            if (!(num < count))
+                                count = '-';
+                            itemSpanDom.innerText = `${num}/${count}`;
+                        })
+                    }
+                });
+            })
+
             return table
         }
 
@@ -347,14 +411,20 @@
         }
 
         async function handleClickCalcBtn() {
+            saveData();
             autoSwitch2MapList();
             await sleep(1000);
-            // selectNumInOnePage(1000)
-            // await sleep(5000);
-              if (selectNumInOnePage() != "1000") {
+
+            // 自动调整至旧版数量
+            const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
+            if(![...tempDom.classList].includes('active'))
+              tempDom.click();
+            document.getElementById('helper--modal-content').classList.remove('drop');
+
+            if (selectNumInOnePage() != 4) {
                 if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
-                     //selectNumInOnePage(1000);
-                     //alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
+                    selectNumInOnePage(1000);
+                    alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
                     return;
                 }
             }
