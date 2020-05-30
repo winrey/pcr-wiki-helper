@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.2.5
+// @version      1.2.6
 // @description  辅助计算所需体力，总次数等等
-// @author       Winrey.colin
+// @author       Winrey,colin
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
@@ -16,7 +16,9 @@
 // @grant        GM_info
 // @grant        GM.getValue
 // @grant        GM.setValue
+// @grant        GM.deleteValue
 // @grant        GM.info
+// @grant        GM_addStyle
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@master/js/solver.js
 // ==/UserScript==
@@ -27,11 +29,20 @@
     const sleep = time => new Promise(r => setTimeout(r), time);
 
     $(document).ready(function() {
+        GM_addStyle(`#calcResultCell::before{
+                             content: attr(data-attr);
+                             position: absolute;
+                             right: 0rem;top: -6px;
+                             background-color: #000000;
+                             color: #fff;
+                             line-height: 0.9rem;
+                             border-radius: 90% 90% 0% 100%;
+                             }`
+                   )
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
         function selectNumInOnePage(num,event) {
-            //hook(unsafeWindow,'forTrusted')
             const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
             if (num){
                 //$select.trigger('change');
@@ -63,7 +74,6 @@
                     const requireItemID=img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
                     let count=parseInt($($item.find(".py-1")[0]).text());
-
                    return { url: url, name: name, img: img, odd: odd, count: count };
                     }
                 const children = $tr.children().map(function(){return $(this)});
@@ -192,7 +202,9 @@
             commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
             commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
-            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, table);
+            const quickDelete = $.parseHTML(`<a href style='margin-left: 2rem;'>快速删除</a>`);
+            $(quickDelete[0]).click(e => { deleteItem(deleteIcon);deleteIcon=!deleteIcon; return false;});
+            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickDelete, table);
         }
 
         function createModal(...content) {
@@ -242,14 +254,21 @@
             $("#helper--modal-close").click(() => hideModal());
             $("#helper--modal-mask").click(() => hideModal());
         }
- 
+
         function genItemsGroup(items) {
             const old=window.performance.now()
             items=boundLocatStrong(items)// ${item.Unique?`唯一`:``}
+
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
-                    ${items.map(item => `
-                        <div class="p-2 text-center mapDrop-item mr-2" style='${item.Unique&&`background-color: #ff94fd;    border-radius: 0.7vw;`||``}'>
+                    ${items.map(item =>`
+                        <div class="p-2 text-center mapDrop-item mr-2"   style='${item.Unique&&`background-color: #ff94fd; border-radius: 0.7vw;background: linear-gradient(0deg,#ff94fd 93.9% ,#ff94fd 10% , red 11%);`||``}'>
+                            <div id='calcResultCell'
+                                 onclick
+                                 ${`data-item-count=${item.count}`}
+                                 data-item-id=${item.img.match(/\d{6}/)[0]}
+                                 data-item-name=${item.name}
+                             >
                             <a
                                 href="${item.url}"
                                 class=""
@@ -261,10 +280,11 @@
                                     title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
                                     src="${item.img}"
                                     ${!item.count&&`style="opacity:0.4;"`}
-
                                     class="aligncenter"
                                 >
+
                             </a>
+                            </div>
                             <h6 class="dropOdd text-center " style='${item.Unique&&`left: 2.3rem;  right: 0;top: 3.6rem; `||``}${!item.count&&`opacity:0.4;`||``}'>${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
                             <span class="oddTri" ${!!item.Unique&&`style='top: 2.1rem;right: 0vh;left: 2.1rem;bottom: 0vh;'`||``}></span>
                             <span class="text-center py-1 d-block"
@@ -288,21 +308,33 @@
             }
             }
             return items
-}
+        }
+          function itemCountChage(equipment_id,count){
+             let p=new RegExp("\"equipment_id\":"+equipment_id +",\"count\":([^,]+)",'g')
+             let t= new RegExp(`\\d+`,'g')
+             localStorage.setItem(`itemList`, localStorage.itemList.replace(p,(match,p1)=>{
+                 return match.substr(0,30)+p1.replace(t,count)//match[match.length-1]match.length-3
+             }))
+         };
         function uniqueItem(mapData){
             let sortData=JSON.stringify(mapData);
             for(let i=0;i<mapData.length;i++){
               for(let item of mapData[i].items){
-                             if( item.count>0&&[...sortData.matchAll(new RegExp(item.name,`g`))].length<2){
-                                 mapData[i].IsuniqueItem=true
-                                 item.Unique=true
-                             }
-
+                  if( item.count>0&&[...sortData.matchAll(new RegExp(item.name,`g`))].length<2){
+                      mapData[i].IsuniqueItem=true
+                      item.Unique=true
+                  }
               }
 
+            }
+            mapData.sort((a,b)=>{return -(a.IsuniqueItem||b.IsuniqueItem||(Math.round(a.effective * 100)-Math.round(b.effective * 100)))})
         }
-        mapData.sort((a,b)=>{return -(a.IsuniqueItem||b.IsuniqueItem||(Math.round(a.effective * 100)-Math.round(b.effective * 100)))})
-        }
+        let deleteIcon=1;
+        const deleteItem=(switchOn)=>{
+            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div#calcResultCell')){
+                switchOn&&~~i.dataset.itemCount&&$(i).attr('data-attr', `\u2716`)||$(i).attr('data-attr', ``)
+            }
+            }
         function genTable(mapData) {
             uniqueItem(mapData);
             const bouns = getBouns();//
@@ -339,9 +371,9 @@ font-size: 0.9rem'>
                                 </td>
                                 <td> ${m.requirement} </td>
                                 <td> ${Math.round(m.effective * 100)}% </td>
-                                <td style='opacity:${m.IsuniqueItem&&-1||1};'> ${Math.ceil(m.min / bouns)} </td>
-                                <td style='opacity:${m.IsuniqueItem&&-1||1};'> ${Math.ceil(m.times / bouns)} </td>
-                                <td style='opacity:${m.IsuniqueItem&&-1||1};'> ${Math.ceil(m.max / bouns)} </td>
+                                <td ${m.IsuniqueItem&&`style='opacity:0`||``};'> ${Math.ceil(m.min / bouns)} </td>
+                                <td ${m.IsuniqueItem&&`style='opacity:0`||``};'> ${Math.ceil(m.times / bouns)} </td>
+                                <td ${m.IsuniqueItem&&`style='opacity:0`||``};'> ${Math.ceil(m.max / bouns)} </td>
                                 <td align="center">
                                     ${genItemsGroup(m.items)}
                                 </td>
@@ -350,6 +382,7 @@ font-size: 0.9rem'>
                     </tbody>
                 </table>
             `.trim();
+
             const table = $.parseHTML(html).pop();  // 0是一堆逗号，我也不造这是什么鬼
             $(table).find("a.helper--nav-to-level").click(function(e) {
                 const $this = $(e.currentTarget);
@@ -367,6 +400,22 @@ font-size: 0.9rem'>
                     })
                 }, 200)
             })
+            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div#calcResultCell').click(function(e){
+                //快速删除
+                 const $this = $(e.currentTarget);
+                 const count=$this[0].dataset.itemCount
+                 const ID=$this[0].dataset.itemId
+                 const name=$this[0].dataset.itemName
+                 if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
+                     itemCountChage(ID,count);
+                     GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
+                     location.reload();
+
+                 }
+
+            })
+
+
             return table
         }
 
@@ -391,6 +440,7 @@ font-size: 0.9rem'>
                 $("#helper--modal-content").html("");
                 for(let i in dom)
                     $("#helper--modal-content").append(dom[i]);
+
             }
         }
 
@@ -436,7 +486,6 @@ font-size: 0.9rem'>
 
         function createBtnGroup() {
             const group = $.parseHTML(`
-
                 <div id="helper--bottom-btn-group" class="scroll-fixed-bottom" style="
                     position: fixed;
                     left: 75rem;
@@ -474,5 +523,15 @@ font-size: 0.9rem'>
         }
         createBtnGroup();
         createModal();
+        (async () => {
+            try{
+                let before = await GM.getValue('mount', 0);
+                before&&eval(before)
+            } catch(e){
+                console.log(`错误: `+e)
+            }finally {
+                await GM.deleteValue('mount');
+            }
+        })();
     });
 })();
