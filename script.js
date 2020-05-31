@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.1.0
+// @version      2.2.1
 // @description  辅助计算所需体力，总次数等等
-// @author       Winrey,colin
+// @author       winrey,colin,hymbz
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
@@ -30,7 +30,7 @@
 
     $(document).ready(function() {
         GM_addStyle(`
-#calcResultCell.helper--show-deleted-btn::before {
+.helper--calc-result-cell.helper--show-deleted-btn::before {
   content: '\u2716';
   position: absolute;
   right: -10px;
@@ -63,18 +63,31 @@
   top: -0.8em;
 }
 
+#helper--modal-content:not(.helper--drop) input[item-name] {
+    display: none;
+}
+
+#helper--modal-content input[item-name] {
+    width: 6em;
+}
+
+#helper--popBox, .helper--modal-backdrop {
+    display: none !important;
+}
+
 `)
+
+        const saveTeamData = () => {
+            // 点击“存储队伍”按钮
+            document.querySelector('.sticky-top button:nth-child(6)').click();
+        }
+
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
         function selectNumInOnePage(num,event) {
             const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
             if (num){
-                //$select.trigger('change');
-                //$select.val(1000).click()//select.val(1000)[0][4].trigger('click');//因为Event.selected = true;被验证了
-                //$select.trigger('change')//.trigger('click');  // 这个不能用，和VUE有关系
-                //const changeEvent = document.createEvent ("HTMLEvents");
-                //changeEvent.initEvent("change");//(准备废弃的api)
                 const changeEvent = new Event('change');
                 $select.val(1000)
                 $select[0].dispatchEvent(changeEvent)
@@ -99,7 +112,8 @@
                     const requireItemID=img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
                     let count=parseInt($($item.find(".py-1")[0]).text());
-                   return { url: url, name: name, img: img, odd: odd, count: count };
+                    const id = /\d+/.exec(img)[0];
+                    return { url, name, img, odd, count, id };
                     }
                 const children = $tr.children().map(function(){return $(this)});
                 const name = children[0].text();
@@ -227,9 +241,17 @@
             commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
             commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
-            const quickDelete = $.parseHTML(`<a href style='margin-left: 2rem;'>快速完成</a>`);
-            $(quickDelete[0]).click(e => { deleteItem(deleteIcon);deleteIcon=!deleteIcon; return false;});
-            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickDelete, table);
+            const quickModifyBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>快速修改</a>`);
+            $(quickModifyBtn[0]).click(e => {
+                deleteItem(modifyState);
+                modifyState = !modifyState;
+                document.querySelector('table button:nth-child(1)').click();
+                document.getElementById('helper--modal-content').classList.toggle('helper--drop');
+                return false;
+            });
+            const reCalcBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>重新计算</a>`);
+            $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
+            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn, table);
         }
 
         function createModal(...content) {
@@ -288,7 +310,7 @@
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item =>`
                         <div class="p-2 text-center mapDrop-item mr-2"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
-                            <div id='calcResultCell'
+                            <div class='helper--calc-result-cell'
                                  onclick
                                  ${`data-item-count=${item.count}`}
                                  data-item-id=${item.img.match(/\d{6}/)[0]}
@@ -312,23 +334,28 @@
                             <span class="oddTri" ${!!item.Unique&&`style='top: 2.1rem;right: 0vh;left: 2.1rem;bottom: 0vh;'`||``}></span>
                             <span class="text-center py-1 d-block"
                                   ${!item.count&&`style="opacity:0.4"`}
+                                  title="${item.information}"
+                                  data-total-need="${(item.has || 0) + (item.count || 0)}"
                              > ${item.count&&`总需`+item.count||`已满`} </span>
+                            <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                         </div>
                     `).join("")}
                 </div>
             `;
+
             return html;
         }
         function boundLocatStrong(items){
             for(let item of items){
-            try{
-                let p=~~new RegExp("\"equipment_id\":"+item.img.match(/\d{6}/)[0] +",\"count\":([^,]+),")
-                   .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'');
-                item.information=`有`+p +" 缺"+(item.count)
-                let c=`${item.count&&(item.count+=p)}`
-            }catch(e){
-                item.count=0
-            }
+                try{
+                    let p=~~new RegExp("\"equipment_id\":"+item.id +",\"count\":([^,]+),")
+                    .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'');
+                    item.information=`有`+p +" 缺"+(item.count)
+                    item.has = p;
+                    let c=`${item.count&&(item.count+=p)}`
+                }catch(e){
+                    item.count=0
+                }
             }
             return items
         }
@@ -352,12 +379,12 @@
             }
             mapData.sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
         }
-        let deleteIcon=1;
+        let modifyState = true;
         const deleteItem=(switchOn)=>{
-            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div#calcResultCell')){
+            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
                  ~~i.dataset.itemCount && switchOn ? $(i).addClass('helper--show-deleted-btn') : $(i).removeClass('helper--show-deleted-btn');
             }
-            }
+        }
         function genTable(mapData) {
             uniqueItem(mapData);
             const bouns = getBouns();//
@@ -411,8 +438,8 @@
                     })
                 }, 200)
             })
-            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div#calcResultCell').click(function(e){
-                //快速删除
+            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(function(e){
+                // 快速完成
                const $this = $(e.target);
                  const count=$this[0].dataset.itemCount
                   if(!count)return
@@ -427,6 +454,35 @@
 
             })
 
+            table.querySelectorAll('input[item-name]').forEach(inputDom=>{
+                const itemName = inputDom.getAttribute('item-name');
+                inputDom.addEventListener('keyup',async (e) => {
+                    if(e.keyCode===13){
+                        const newNum = +e.srcElement.value;
+                        // 通过图书馆的快速修改功能来进行库存的修改
+                        const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
+                            .closest('div').querySelector('input');
+                        inputDom.value = newNum;
+                        inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
+                        //saveData();
+
+                        // 在修改库存后，修改结果页的库存显示
+                        table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                            dom.value = "";
+                            const itemSpanDom = dom.closest('div').querySelector('span.text-center');
+                            const title = itemSpanDom.getAttribute("title");
+                            let totalNeed = itemSpanDom.getAttribute("data-total-need");
+                            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed - newNum}` : "已满";
+                            itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                        })
+
+                        // 在输入掉落数时同步所有相同装备下的 input 的 value
+                        table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                            dom.value = newNum;
+                        })
+                    }
+                });
+            });
 
             return table
         }
@@ -457,18 +513,21 @@
         }
 
         async function handleClickCalcBtn() {
+
             autoSwitch2MapList();
-            await sleep(1000);
-            // selectNumInOnePage(1000)
-            // await sleep(5000);
+            await sleep(100);
+
+            // 自动调整至旧版数量
+            //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
+            //if(![...tempDom.classList].includes('active'))
+            //    tempDom.click();
+            //await sleep(100);
+
+            document.getElementById('helper--modal-content').classList.remove('helper--drop');
             if (selectNumInOnePage() != "1000") {
                    selectNumInOnePage(1000);
-                //if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
-                     //alert("请手动设置“全部”需要3秒钟左右。完成后请重新点击“计算结果”。");
-                  //  return;
-                //}
             }
-            //await sleep(10000);
+            await sleep(100);
             const data = await getMapData();
             console.log("data", data);
             const result = calcResult(data);
