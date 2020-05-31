@@ -403,8 +403,9 @@ font-size: 0.9rem'>
             })
             $(table).find('.p-2.text-center.mapDrop-item.mr-2>div#calcResultCell').click(function(e){
                 //快速删除
-                 const $this = $(e.currentTarget);
+               const $this = $(e.target);
                  const count=$this[0].dataset.itemCount
+                  if(!count)return
                  const ID=$this[0].dataset.itemId
                  const name=$this[0].dataset.itemName
                  if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
