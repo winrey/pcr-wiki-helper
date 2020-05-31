@@ -327,7 +327,7 @@
               }
 
             }
-            mapData.sort((a,b)=>{return -(a.IsuniqueItem||b.IsuniqueItem||(Math.round(a.effective * 100)-Math.round(b.effective * 100)))})
+            mapData.sort((a,b)=>{return -(a.IsuniqueItem&&1||b.IsuniqueItem&&-1||(Math.round(a.effective * 100)-Math.round(b.effective * 100)))})
         }
         let deleteIcon=1;
         const deleteItem=(switchOn)=>{
