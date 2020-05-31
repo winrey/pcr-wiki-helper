@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.2.6
+// @version      2.0.0
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey,colin
 // @license      MIT
@@ -29,16 +29,41 @@
     const sleep = time => new Promise(r => setTimeout(r), time);
 
     $(document).ready(function() {
-        GM_addStyle(`#calcResultCell::before{
-                             content: attr(data-attr);
-                             position: absolute;
-                             right: 0rem;top: -6px;
-                             background-color: #000000;
-                             color: #fff;
-                             line-height: 0.9rem;
-                             border-radius: 90% 90% 0% 100%;
-                             }`
-                   )
+        GM_addStyle(`
+#calcResultCell.helper--show-deleted-btn::before {
+  content: '\u2716';
+  position: absolute;
+  right: -10px;
+  top: -11px;
+  background-color: #ff0000;
+  color: #fff;
+  line-height: 0.9rem;
+  border-radius: 30%;
+  padding: 3px;
+  opacity: 50%;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+#helper--bottom-btn-group {
+  position: fixed;
+  right: calc(60px + 1% - 2px);
+  bottom: 90px;
+  overflow: visible;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.helper--nav-to-level.helper--important::after {
+  content: "优";
+  color: #e60c0c;
+  font-size: .5em;
+  position: relative;
+  top: -0.8em;
+}
+
+`)
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
@@ -195,14 +220,14 @@
             commentLines.push("");
             commentLines.push("---表头说明---");
             commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。");
-            commentLines.push("『优先』标识。粉框装备是全地图唯一最高效率。请无脑刷满粉框。");
+            commentLines.push("『优先』标识。高亮装备是全地图唯一最高效率。请无脑刷满高亮装备图。");
             commentLines.push("『需求』关卡需求。图中所需装备总数。");
             commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
             commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
             commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
             commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
-            const quickDelete = $.parseHTML(`<a href style='margin-left: 2rem;'>快速删除</a>`);
+            const quickDelete = $.parseHTML(`<a href style='margin-left: 2rem;'>快速完成</a>`);
             $(quickDelete[0]).click(e => { deleteItem(deleteIcon);deleteIcon=!deleteIcon; return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickDelete, table);
         }
@@ -262,7 +287,7 @@
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item =>`
-                        <div class="p-2 text-center mapDrop-item mr-2"   style='${item.Unique&&`background-color: #ff94fd; border-radius: 0.7vw;background: linear-gradient(0deg,#ff94fd 93.9% ,#ff94fd 10% , red 11%);`||``}'>
+                        <div class="p-2 text-center mapDrop-item mr-2"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
                             <div id='calcResultCell'
                                  onclick
                                  ${`data-item-count=${item.count}`}
@@ -274,7 +299,6 @@
                                 class=""
                                 target="_blank"
                             >
-
                                 <img
                                     width="70"
                                     title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
@@ -282,7 +306,6 @@
                                     ${!item.count&&`style="opacity:0.4;"`}
                                     class="aligncenter"
                                 >
-
                             </a>
                             </div>
                             <h6 class="dropOdd text-center " style='${item.Unique&&`left: 2.3rem;  right: 0;top: 3.6rem; `||``}${!item.count&&`opacity:0.4;`||``}'>${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
@@ -333,7 +356,7 @@
         let deleteIcon=1;
         const deleteItem=(switchOn)=>{
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div#calcResultCell')){
-                switchOn&&~~i.dataset.itemCount&&$(i).attr('data-attr', `\u2716`)||$(i).attr('data-attr', ``)
+                 ~~i.dataset.itemCount && switchOn ? $(i).addClass('helper--show-deleted-btn') : $(i).removeClass('helper--show-deleted-btn');
             }
             }
         function genTable(mapData) {
@@ -354,21 +377,9 @@
                         ${mapData.map(m => `
                             <tr>
                                 <td>
-                                    <a href="#" class="helper--nav-to-level" data-page="${m.page}" data-index="${m.index}">
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-page="${m.page}" data-index="${m.index}">
                                         ${m.name}
                                     </a>
-                                 ${m.IsuniqueItem&&`<div
-title='无脑刷满粉框'
-style='
-text-align: center;
-border: 2px solid #eb0000;
-background: #ffb3b3;
-width: 2.3rem;
-border-radius: 25px;
-font-size: 0.9rem'>
-优先</div>`||``}
-
-
                                 </td>
                                 <td> ${m.requirement} </td>
                                 <td> ${Math.round(m.effective * 100)}% </td>
@@ -478,7 +489,7 @@ font-size: 0.9rem'>
 
         function btnFactory(content, colorRotate, onClick) {
             const btn = $.parseHTML(`
-                <div class="armory-function" style="padding: 0 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
+                <div class="armory-function" style="padding: 0; padding-top: 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
                     <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
                 </div>
             `);
@@ -488,19 +499,7 @@ font-size: 0.9rem'>
 
         function createBtnGroup() {
             const group = $.parseHTML(`
-                <div id="helper--bottom-btn-group" class="scroll-fixed-bottom" style="
-                    position: fixed;
-                    left: 75rem;
-                    right: 0;
-                    top: 14rem;
-                    bottom: 0;
-                    width: 1rem;
-                    height: 39%;
-                    z-index: 1030;
-                    overflow: visible;
-                    display: flex;
-                    flex-wrap: wrap;
-                "></div>
+                <div id="helper--bottom-btn-group" class="scroll-fixed-bottom"></div>
             `);
             const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
             const bounsBtn = btnFactory("修改<br>倍数", 180, askBouns);
