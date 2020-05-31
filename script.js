@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      1.2.2
+// @version      2.2.1
 // @description  辅助计算所需体力，总次数等等
-// @author       Winrey,colin,hymbz
+// @author       winrey,colin,hymbz
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
@@ -11,13 +11,14 @@
 // @connect      cdn.jsdelivr.net
 // @match        *://pcredivewiki.tw/Armory
 // @grant        unsafeWindow
-// @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_info
 // @grant        GM.getValue
 // @grant        GM.setValue
+// @grant        GM.deleteValue
 // @grant        GM.info
+// @grant        GM_addStyle
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@master/js/solver.js
 // ==/UserScript==
@@ -27,37 +28,72 @@
 
     const sleep = time => new Promise(r => setTimeout(r), time);
 
-    GM_addStyle(`
-        #helper--modal-content:not(.drop) input[item-name] {
-            display: none;
-        }
-
-        input[item-name] {
-            width: 6em;
-        }
-
-        #popBox, .modal-backdrop {
-            display: none !important;
-        }
-    `)
-
     $(document).ready(function() {
-        const saveData = () => {
+        GM_addStyle(`
+.helper--calc-result-cell.helper--show-deleted-btn::before {
+  content: '\u2716';
+  position: absolute;
+  right: -10px;
+  top: -11px;
+  background-color: #ff0000;
+  color: #fff;
+  line-height: 0.9rem;
+  border-radius: 30%;
+  padding: 3px;
+  opacity: 50%;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+#helper--bottom-btn-group {
+  position: fixed;
+  right: calc(60px + 1% - 2px);
+  bottom: 90px;
+  overflow: visible;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.helper--nav-to-level.helper--important::after {
+  content: "独";
+  color: #e60c0c;
+  font-size: .5em;
+  position: relative;
+  top: -0.8em;
+}
+
+#helper--modal-content:not(.helper--drop) input[item-name] {
+    display: none;
+}
+
+#helper--modal-content input[item-name] {
+    width: 6em;
+}
+
+#helper--popBox, .helper--modal-backdrop {
+    display: none !important;
+}
+
+`)
+
+        const saveTeamData = () => {
+            // 点击“存储队伍”按钮
             document.querySelector('.sticky-top button:nth-child(6)').click();
         }
 
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
-
-        function selectNumInOnePage(num) {
-            const $select = document.querySelector('#app > div.main > div > div.item-box > div.row.mb-3 > div:nth-child(3) > div > div:nth-child(3) > div > div > select');
+        function selectNumInOnePage(num,event) {
+            const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
             if (num){
-                $select.selectedIndex = 4;
-                $select.dispatchEvent(new Event("change"));
+                const changeEvent = new Event('change');
+                $select.val(1000)
+                $select[0].dispatchEvent(changeEvent)
             }
             else
-                return $select.selectedIndex;
+                return $select.val();
         }
 
         function toPage(num) {
@@ -69,12 +105,13 @@
 
         async function getMapData() {
             function rowParser($tr, page, index) {
-                 function parseItem($item) {
+                    function parseItem($item) {
                     const url = $($item.find("a")[0]).attr("href");
                     const name = $($item.find("img")[0]).attr("title");
-                    const img = $($item.find("img")[0]).attr("src")
+                    const img = $($item.find("img")[0]).attr("src");
+                    const requireItemID=img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
-                    const count=parseInt($($item.find(".py-1")[0]).text());
+                    let count=parseInt($($item.find(".py-1")[0]).text());
                     const id = /\d+/.exec(img)[0];
                     return { url, name, img, odd, count, id };
                     }
@@ -196,14 +233,25 @@
             commentLines.push("注意：如果您尚缺好感，请考虑以1,6,11次扫荡为单位刷图，这样可以好感获得最大化。");
             commentLines.push("");
             commentLines.push("---表头说明---");
-            commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。");
+            commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。关卡后的“独”表示这里存在独有装备。");
+            commentLines.push("『优先』标识。高亮装备是全地图唯一最高效率。请无脑刷满高亮装备图。");
             commentLines.push("『需求』关卡需求。图中所需装备总数。");
             commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
             commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
             commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
             commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
-            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, table);
+            const quickModifyBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>快速修改</a>`);
+            $(quickModifyBtn[0]).click(e => {
+                deleteItem(modifyState);
+                modifyState = !modifyState;
+                document.querySelector('table button:nth-child(1)').click();
+                document.getElementById('helper--modal-content').classList.toggle('helper--drop');
+                return false;
+            });
+            const reCalcBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>重新计算</a>`);
+            $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
+            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn, table);
         }
 
         function createModal(...content) {
@@ -245,8 +293,6 @@
                     <div id="helper--modal-mask" style="${maskStyle}"></div>
                     <div class="breadcrumb" style="${boxStyle}">
                         <div id="helper--modal-content" style="${contentStyle}">${content.join("")}</div>
-                        <button id="helper--modal-again" type="button" class="pcbtn mr-3"> 重新计算 </button>
-                        <button id="helper--modal-drop" type="button" class="pcbtn mr-3"> 添加掉落 </button>
                         <button id="helper--modal-close" type="button" class="pcbtn mr-3"> 关闭 </button>
                     </div>
                 </div>
@@ -254,27 +300,22 @@
             $("#app").after(html);
             $("#helper--modal-close").click(() => hideModal());
             $("#helper--modal-mask").click(() => hideModal());
-
-            document.getElementById('helper--modal-again').addEventListener('click', handleClickCalcBtn);
-            document.getElementById('helper--modal-drop').addEventListener('click', () => {
-                document.querySelector('table button:nth-child(1)').click();
-                document.getElementById('helper--modal-content').classList.toggle('drop');
-            });
         }
-        function comparisonItemlStorage(items){
-            for(let item of items){
-                const num = +new RegExp(`"equipment_id":${item.id},"count":"(\\d+)"`)
-                    .exec(localStorage.itemList)?.[1] || 0;
-                item.count = `${num}/${item.count ? num + item.count : '-' }`;
-            }
-            return items
-}
+
         function genItemsGroup(items) {
-            items=comparisonItemlStorage (items)
+            const old=window.performance.now()
+            items=boundLocatStrong(items)// ${item.Unique?`唯一`:``}
+
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
-                    ${items.map(item => `
-                        <div class="p-2 text-center mapDrop-item mr-2">
+                    ${items.map(item =>`
+                        <div class="p-2 text-center mapDrop-item mr-2"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
+                            <div class='helper--calc-result-cell'
+                                 onclick
+                                 ${`data-item-count=${item.count}`}
+                                 data-item-id=${item.img.match(/\d{6}/)[0]}
+                                 data-item-name=${item.name}
+                             >
                             <a
                                 href="${item.url}"
                                 class=""
@@ -282,28 +323,75 @@
                             >
                                 <img
                                     width="70"
-                                    title="${item.name}"
+                                    title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
                                     src="${item.img}"
+                                    ${!item.count&&`style="opacity:0.4;"`}
                                     class="aligncenter"
                                 >
                             </a>
-                            <h6 class="dropOdd text-center">${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
-                            <span class="oddTri"></span>
-                            <span class="text-center py-1 d-block"> ${item.count} </span>
-                            <span><input type="number" class="form-control" item-name="${item.name}"></span>
+                            </div>
+                            <h6 class="dropOdd text-center " style='${item.Unique&&`left: 2.3rem;  right: 0;top: 3.6rem; `||``}${!item.count&&`opacity:0.4;`||``}'>${Math.round(item.odd * 100)}<span style="font-size: 12px;">%</span></h6>
+                            <span class="oddTri" ${!!item.Unique&&`style='top: 2.1rem;right: 0vh;left: 2.1rem;bottom: 0vh;'`||``}></span>
+                            <span class="text-center py-1 d-block"
+                                  ${!item.count&&`style="opacity:0.4"`}
+                                  title="${item.information}"
+                                  data-total-need="${(item.has || 0) + (item.count || 0)}"
+                             > ${item.count&&`总需`+item.count||`已满`} </span>
+                            <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                         </div>
                     `).join("")}
                 </div>
             `;
+
             return html;
         }
+        function boundLocatStrong(items){
+            for(let item of items){
+                try{
+                    let p=~~new RegExp("\"equipment_id\":"+item.id +",\"count\":([^,]+),")
+                    .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'');
+                    item.information=`有`+p +" 缺"+(item.count)
+                    item.has = p;
+                    let c=`${item.count&&(item.count+=p)}`
+                }catch(e){
+                    item.count=0
+                }
+            }
+            return items
+        }
+          function itemCountChage(equipment_id,count){
+             let p=new RegExp("\"equipment_id\":"+equipment_id +",\"count\":([^,]+)",'g')
+             let t= new RegExp(`\\d+`,'g')
+             localStorage.setItem(`itemList`, localStorage.itemList.replace(p,(match,p1)=>{
+                 return match.substr(0,30)+p1.replace(t,count)//match[match.length-1]match.length-3
+             }))
+         };
+        function uniqueItem(mapData){
+            let sortData=JSON.stringify(mapData);
+            for(let i=0;i<mapData.length;i++){
+              for(let item of mapData[i].items){
+                  if( item.count>0&&[...sortData.matchAll(new RegExp(item.name,`g`))].length<2){
+                      mapData[i].IsuniqueItem=true
+                      item.Unique=true
+                  }
+              }
 
+            }
+            mapData.sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
+        }
+        let modifyState = true;
+        const deleteItem=(switchOn)=>{
+            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
+                 ~~i.dataset.itemCount && switchOn ? $(i).addClass('helper--show-deleted-btn') : $(i).removeClass('helper--show-deleted-btn');
+            }
+        }
         function genTable(mapData) {
-            const bouns = getBouns();
+            uniqueItem(mapData);
+            const bouns = getBouns();//
             const html = `
                 <table width="1000px" class="table table-bordered mapDrop-table helper">
                     <thead>
-                        <th style="min-width: 67px; vertical-align: baseline;">章节</th>
+                        <th style="min-width: 71px; vertical-align: baseline;">章节</th>
                         <th style="min-width: 67px; vertical-align: baseline;">需求</th>
                         <th style="min-width: 67px; vertical-align: baseline;">效率</th>
                         <th style="min-width: 67px; vertical-align: baseline;">适用</th>
@@ -315,7 +403,7 @@
                         ${mapData.map(m => `
                             <tr>
                                 <td>
-                                    <a href="#" class="helper--nav-to-level" data-page="${m.page}" data-index="${m.index}">
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-page="${m.page}" data-index="${m.index}" title="点击跳转到关卡位置">
                                         ${m.name}
                                     </a>
                                 </td>
@@ -324,7 +412,7 @@
                                 <td> ${Math.ceil(m.min / bouns)} </td>
                                 <td> ${Math.ceil(m.times / bouns)} </td>
                                 <td> ${Math.ceil(m.max / bouns)} </td>
-                                <td align="center" style="width: 60%;">
+                                <td align="center">
                                     ${genItemsGroup(m.items)}
                                 </td>
                             </tr>
@@ -332,6 +420,7 @@
                     </tbody>
                 </table>
             `.trim();
+
             const table = $.parseHTML(html).pop();  // 0是一堆逗号，我也不造这是什么鬼
             $(table).find("a.helper--nav-to-level").click(function(e) {
                 const $this = $(e.currentTarget);
@@ -349,39 +438,51 @@
                     })
                 }, 200)
             })
+            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(function(e){
+                // 快速完成
+               const $this = $(e.target);
+                 const count=$this[0].dataset.itemCount
+                  if(!count)return
+                 const ID=$this[0].dataset.itemId
+                 const name=$this[0].dataset.itemName
+                 if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
+                     itemCountChage(ID,count);
+                     GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
+                     location.reload();
+
+                 }
+
+            })
 
             table.querySelectorAll('input[item-name]').forEach(inputDom=>{
-                // 在输入掉落数时同步所有相同装备下的 input 的 value
                 const itemName = inputDom.getAttribute('item-name');
-                inputDom.addEventListener('input',(e) => {
-                    table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-                        dom.value = e.srcElement.value;
-                    })
-                });
-                inputDom.addEventListener('keyup',(e) => {
+                inputDom.addEventListener('keyup',async (e) => {
                     if(e.keyCode===13){
-                        const dropNum = +e.srcElement.value;
+                        const newNum = +e.srcElement.value;
                         // 通过图书馆的快速修改功能来进行库存的修改
                         const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
                             .closest('div').querySelector('input');
-                        inputDom.value = +inputDom.value + dropNum;
+                        inputDom.value = newNum;
                         inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
-                        saveData();
+                        //saveData();
 
                         // 在修改库存后，修改结果页的库存显示
                         table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
                             dom.value = "";
                             const itemSpanDom = dom.closest('div').querySelector('span.text-center');
-                            let [num, count] = itemSpanDom.innerText.split('/').map(n => +n);
-                            num += dropNum;
-                            // 不需求装备时
-                            if (!(num < count))
-                                count = '-';
-                            itemSpanDom.innerText = `${num}/${count}`;
+                            const title = itemSpanDom.getAttribute("title");
+                            let totalNeed = itemSpanDom.getAttribute("data-total-need");
+                            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed - newNum}` : "已满";
+                            itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                        })
+
+                        // 在输入掉落数时同步所有相同装备下的 input 的 value
+                        table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                            dom.value = newNum;
                         })
                     }
                 });
-            })
+            });
 
             return table
         }
@@ -407,27 +508,26 @@
                 $("#helper--modal-content").html("");
                 for(let i in dom)
                     $("#helper--modal-content").append(dom[i]);
+
             }
         }
 
         async function handleClickCalcBtn() {
-            saveData();
+
             autoSwitch2MapList();
-            await sleep(1000);
+            await sleep(100);
 
             // 自动调整至旧版数量
-            const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
-            if(![...tempDom.classList].includes('active'))
-              tempDom.click();
-            document.getElementById('helper--modal-content').classList.remove('drop');
+            //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
+            //if(![...tempDom.classList].includes('active'))
+            //    tempDom.click();
+            //await sleep(100);
 
-            if (selectNumInOnePage() != 4) {
-                if(confirm("将“每页显示”调整为“全部”可以极大加快计算速度。是否前往设置？")) {
-                    selectNumInOnePage(1000);
-                    alert("自动设置可能需要3秒钟左右。设置完成后请重新点击“计算结果”。");
-                    return;
-                }
+            document.getElementById('helper--modal-content').classList.remove('helper--drop');
+            if (selectNumInOnePage() != "1000") {
+                   selectNumInOnePage(1000);
             }
+            await sleep(100);
             const data = await getMapData();
             console.log("data", data);
             const result = calcResult(data);
@@ -447,7 +547,7 @@
 
         function btnFactory(content, colorRotate, onClick) {
             const btn = $.parseHTML(`
-                <div class="armory-function" style="padding: 0 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
+                <div class="armory-function" style="padding: 0; padding-top: 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
                     <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
                 </div>
             `);
@@ -457,22 +557,14 @@
 
         function createBtnGroup() {
             const group = $.parseHTML(`
-                <div id="helper--bottom-btn-group" class="scroll-fixed-bottom" style="
-                    position: fixed;
-                    right: 130px;
-                    bottom: 0;
-                    padding: 1%;
-                    z-index: 1030;
-                    display: flex;
-                    overflow: visible;
-                "></div>
+                <div id="helper--bottom-btn-group" class="scroll-fixed-bottom"></div>
             `);
             const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
             const bounsBtn = btnFactory("修改<br>倍数", 180, askBouns);
             const calcBtn = btnFactory("计算<br>结果", 90, handleClickCalcBtn);
+            $(group).append(calcBtn);
             $(group).append(fastModifyBtn);
             $(group).append(bounsBtn);
-            $(group).append(calcBtn);
             $("#app .container").append(group);
         }
 
@@ -483,12 +575,22 @@
             const bounsBtn = btnFactory("修改<br>倍数", 216, askBouns);
             const lastResultBtn = btnFactory("上次<br>结果", 144, () => showModal());
             const calcBtn = btnFactory("重新<br>计算", 72, handleClickCalcBtn);
-            group.append(fastModifyBtn);
-            group.append(bounsBtn);
-            group.append(lastResultBtn);
             group.append(calcBtn);
+            group.append(bounsBtn);
+            group.append(fastModifyBtn);
+            group.append(lastResultBtn);
         }
         createBtnGroup();
         createModal();
+        (async () => {
+            try{
+                let before = await GM.getValue('mount', 0);
+                before&&eval(before)
+            } catch(e){
+                console.log(`错误: `+e)
+            }finally {
+                await GM.deleteValue('mount');
+            }
+        })();
     });
 })();
