@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.0.0
+// @version      2.1.0
 // @description  辅助计算所需体力，总次数等等
 // @author       Winrey,colin
 // @license      MIT
@@ -56,7 +56,7 @@
 }
 
 .helper--nav-to-level.helper--important::after {
-  content: "优";
+  content: "独";
   color: #e60c0c;
   font-size: .5em;
   position: relative;
@@ -219,7 +219,7 @@
             commentLines.push("注意：如果您尚缺好感，请考虑以1,6,11次扫荡为单位刷图，这样可以好感获得最大化。");
             commentLines.push("");
             commentLines.push("---表头说明---");
-            commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。");
+            commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。关卡后的“独”表示这里存在独有装备。");
             commentLines.push("『优先』标识。高亮装备是全地图唯一最高效率。请无脑刷满高亮装备图。");
             commentLines.push("『需求』关卡需求。图中所需装备总数。");
             commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
@@ -350,8 +350,7 @@
               }
 
             }
-            mapData.sort((a,b)=>{return a.IsuniqueItem&&-1||b.IsuniqueItem&&1||0})
-                .sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
+            mapData.sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
         }
         let deleteIcon=1;
         const deleteItem=(switchOn)=>{
@@ -377,15 +376,15 @@
                         ${mapData.map(m => `
                             <tr>
                                 <td>
-                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-page="${m.page}" data-index="${m.index}">
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-page="${m.page}" data-index="${m.index}" title="点击跳转到关卡位置">
                                         ${m.name}
                                     </a>
                                 </td>
                                 <td> ${m.requirement} </td>
                                 <td> ${Math.round(m.effective * 100)}% </td>
-                                <td ${m.IsuniqueItem&&`style='opacity:0`||``};'> ${Math.ceil(m.min / bouns)} </td>
-                                <td ${m.IsuniqueItem&&`style='opacity:0`||``};'> ${Math.ceil(m.times / bouns)} </td>
-                                <td ${m.IsuniqueItem&&`style='opacity:0`||``};'> ${Math.ceil(m.max / bouns)} </td>
+                                <td> ${Math.ceil(m.min / bouns)} </td>
+                                <td> ${Math.ceil(m.times / bouns)} </td>
+                                <td> ${Math.ceil(m.max / bouns)} </td>
                                 <td align="center">
                                     ${genItemsGroup(m.items)}
                                 </td>
