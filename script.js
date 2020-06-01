@@ -212,6 +212,7 @@
             document.querySelector('.sticky-top button:nth-child(6)').click();
         }
 
+
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
@@ -391,6 +392,7 @@
             const multipleBtn = $.parseHTML( `<span class=switch-multiSelect style="display:none"><span class="switch-handler"></span></span>`)
             $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
+
         }
 
         function createModal(...content) {
@@ -464,6 +466,7 @@
                                 class=""
                                 target="_blank"
                             >
+
                                 <img
                                     width="70"
                                     title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
@@ -603,6 +606,7 @@
             }
              !switchOn&&document.querySelector('.switch-multiSelect').classList.toggle(`selected-completed`,0)
         }
+
         function genTable(mapData) {
             uniqueItem(mapData);
             const bouns = getBouns();//
@@ -614,8 +618,8 @@
                         <th style="min-width: 67px; vertical-align: baseline;">效率</th>
                         <th style="min-width: 67px; vertical-align: baseline;">适用</th>
                         <th style="min-width: 67px; vertical-align: baseline;">推荐</th>
-<th style="min-width: 67px; vertical-align: baseline;">最大</th>
-                        <th> 掉落一覽 </th>
+                        <th style="min-width: 67px; vertical-align: baseline;">最大</th>
+                          <th> 掉落一覽 </th>
                     </thead>
                     <tbody>
                         ${mapData.map(m => `
