@@ -31,11 +31,10 @@
 
     $(document).ready(function() {
         GM_addStyle(`
-.helper--calc-result-cell.helper--show-deleted-btn::before {
+.helper--calc-result-cell.helper--show-deleted-btn::after {
   content: '\u2716';
   position: absolute;
-  right: -10px;
-  top: -11px;
+  bottom: 70px;
   background-color: #ff0000;
   color: #fff;
   line-height: 0.9rem;
@@ -45,17 +44,23 @@
   cursor: pointer;
   z-index: 10000;
 }
-.mapDrop-table .oddTri-helper {
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 0 0 40px 40px;
-    border-color: transparent transparent hsla(0,0%,95.3%,.82) transparent;
-    position: absolute;
-    top: 38px;
-    right: 7px;
-    z-index: 1;
-    pointer-events: none;
+
+.mapDrop-table .helper-oddTri {
+    right: .3rem;
+    top: 1.6rem;
+    color: black;
+}
+
+
+.mapDrop-table .helper--calc-result-cell{
+    width: 70px;
+    height: 70px;
+    margin: 0 auto;
+    position: relative;
+}
+.mapDrop-table .helper-block {
+    top: 1.6rem;
+    right: .12rem;
 }
 
 #helper--bottom-btn-group {
@@ -324,8 +329,10 @@
             const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item =>`
-                        <div class="p-2 text-center mapDrop-item mr-2 helper-cell"   style='position: absolute; ${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
-<div class='helper--calc-result-cell'
+                        <div class="p-2 text-center mapDrop-item mr-2 helper-cell"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
+
+
+                            <div class='helper--calc-result-cell'
                                  onclick
                                  ${`data-item-count=${item.count}`}
                                  data-item-id=${item.img.match(/\d{6}/)[0]}
@@ -344,9 +351,9 @@
                                     class="aligncenter"
                                 >
 
-                            <span class="oddTri oddTri-helper" ${!!item.Unique&&`style='top: 2.1rem;right: 0vh;left: 2.1rem;bottom: 0vh;'`||``}>
-                            <h6 class="dropOdd text-center " style='${item.Unique&&`left: 2.3rem;  right: 0;top: 3.6rem; `||``}${!item.count&&`opacity:0.4;`||``}'>
-                             ${Math.round(item.odd * 100)}%</h6></span>
+                            <span class="oddTri helper-oddTri">
+                            <i class="dropOdd text-center helper-block ">
+                             ${Math.round(item.odd * 100)}%</i></span>
                             </a>
                             </div>
                             <span class="text-center py-1 d-block"
