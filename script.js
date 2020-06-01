@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.2.1
+// @version      2.2.3
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -44,7 +44,32 @@
   cursor: pointer;
   z-index: 10000;
 }
-
+.helper--calc-result-cell.helper--show-deleted-btn.multiSelect-no::after {
+  content: '\u00A0\u00A0\u00A0';
+  position: absolute;
+  bottom: 70px;
+  background-color: #ff0000;
+  color: #fff;
+  line-height: 0.9rem;
+  border-radius: 30%;
+  padding: 3px;
+  opacity: 50%;
+  cursor: pointer;
+  z-index: 10000;
+}
+.helper--calc-result-cell.helper--show-deleted-btn.multiSelect-yes::after {
+  content: '\u2714';
+  position: absolute;
+  bottom: 70px;
+  background-color: #ff0000;
+  color: #fff;
+  line-height: 0.9rem;
+  border-radius: 30%;
+  padding: 3px;
+  opacity: 50%;
+  cursor: pointer;
+  z-index: 10000;
+}
 .mapDrop-table .helper-oddTri {
     right: .3rem;
     top: 1.6rem;
@@ -91,6 +116,93 @@
 
 #helper--popBox, .helper--modal-backdrop {
     display: none !important;
+}
+.switch-multiSelect {
+	width: 70px;
+	height: 32px;
+	border: solid 2px #ddd;
+	border-radius: 30px;
+	background-color: #FFF;
+	position: relative;
+    padding-left: 2.6rem;;
+	-webkit-transition: background-color 0.3s;
+	transition: background-color 0.3s;
+	-webkit-user-select: none;
+	font-size: 14px;
+    left: 5.1rem;
+}
+.switch-multiSelect> input[type="checkbox"] {
+	display: none;
+}
+
+.switch-multiSelect::after {
+    right: 2.7rem;
+    content: '多选';
+    position: absolute;
+    width: 4rem;
+    font-size: 15px;
+    top: -0.1rem;
+    margin-right: -1rem;
+    transition: all 0.1s;
+}
+.switch-multiSelect.selected-completed::after {
+    right: 3rem;
+    content: '已选完成';
+    position: absolute;
+    font-size: 15px;
+    top: -0.1rem;
+    margin-right:0rem;
+}
+.switch-multiSelect > .switch-handler {
+	position: absolute;
+	left: 2px;
+	top: .12rem;
+    width: 1rem;
+    height: 1rem;
+	background-color: #FFF;
+	border-radius: 50%;
+	-webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
+	box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
+	-webkit-transition: all 0.3s;
+	transition: all 0.3s;
+}
+.switch-multiSelect.active {
+	border-color: #4cd964;
+	background-color: #4cd964;
+	padding-left: 0;
+    padding-left: 2.6rem;
+}
+.switch-multiSelect.active > .switch-handler {
+	left: 1.5rem;
+}
+.switch-multiSelect > .switch-handler::after {
+    color: #efedeb;
+    content: '关';
+    position: absolute;
+    left: 1.3rem;
+    bottom: -0.2rem;
+}
+.switch-multiSelect.active > .switch-handler::after {
+     content: '\u00A0\u00A0\u00A0';
+    color: #ffff;
+    position: relative;
+
+}
+.switch-multiSelect.active > .switch-handler::before {
+    content: '开';
+    color: #f5f5f5;
+    left: 0.1rem;
+    bottom: 0.1rem;
+    box-shadow: -1px 1px 3px #000;
+    border-radius: 11%;
+    right: 1.1rem;
+    bottom: 0.18rem;
+}
+.switch-multiSelect >.switch-handler::before {
+    content: '\u00A0\u00A0\u00A0';
+    color: #ffff;
+    position: relative;
+
 }
 
 `)
@@ -261,15 +373,24 @@
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
             const quickModifyBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>快速修改</a>`);
             $(quickModifyBtn[0]).click(e => {
-                deleteItem(modifyState);
-                modifyState = !modifyState;
                 document.querySelector('table button:nth-child(1)').click();
                 document.getElementById('helper--modal-content').classList.toggle('helper--drop');
+
+                deleteItem(modifyState)
+                let MultiSelect=document.querySelector('span.switch-multiSelect.active')
+                modifyState&&document.querySelector('span.switch-multiSelect').addEventListener(`click`,multiItemChange)
+                modifyState&&document.querySelector('span.switch-multiSelect>.switch-handler').addEventListener(`click`,(e)=>{
+                    !MultiSelect&&(MultiSelect=document.querySelector('span.switch-multiSelect.active'))
+                    document.querySelector('span.switch-multiSelect').classList.toggle("active", MultiSelect=!MultiSelect);
+                    multiSelectState(MultiSelect);e.stopImmediatePropagation()})
+                !modifyState&&!document.querySelector('span.switch-multiSelect').classList.toggle("active", modifyState)&&multiSelectState(modifyState)
+                modifyState = !modifyState;
                 return false;
             });
             const reCalcBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>重新计算</a>`);
+            const multipleBtn = $.parseHTML( `<span class=switch-multiSelect style="display:none"><span class="switch-handler"></span></span>`)
             $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
-            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn, table);
+            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
         }
 
         function createModal(...content) {
@@ -359,7 +480,7 @@
                             <span class="text-center py-1 d-block"
                                   ${!item.count&&`style="opacity:0.4"`}
                                   title="${item.information}"
-                                  data-total-need="${(item.has || 0) + (item.count || 0)}"
+                                  data-total-need=${item.count}//"${(item.has || 0) + (item.count || 0)}"
                              > ${item.count&&`总需`+item.count||`已满`} </span>
                             <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                         </div>
@@ -383,7 +504,40 @@
             }
             return items
         }
-          function itemCountChage(equipment_id,count){
+        const changeItemCount=(e)=>{
+                // 快速完成
+            const singleItem=()=>{
+                const $this = $(e.target);
+                const count=$this[0].dataset.itemCount
+                if(!count)return
+                const ID=$this[0].dataset.itemId
+                const name=$this[0].dataset.itemName
+                if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
+                    itemCountChage(ID,count);
+                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
+                    location.reload();
+                }}
+
+            const multiItem=()=>{
+                e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length-1]==`multiSelect-yes`))
+                document.querySelector('.switch-multiSelect').classList.toggle(`selected-completed`,document.querySelectorAll('.multiSelect-yes').length!=0)
+            }
+              e.target.classList[e.target.classList.length-1]==`helper--show-deleted-btn`&&!singleItem()||multiItem()
+            }
+        const multiItemChange=(e)=>{
+                let cell=document.querySelectorAll('.multiSelect-yes')
+                if(confirm(`你目前选了${cell.length}个装备,开始修改,点击确定生效`)) {
+                    for(let dom of [...cell]){
+                        itemCountChage(dom.dataset.itemId,dom.dataset.itemCount);
+                    }
+                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
+                    location.reload();
+                }
+
+
+            }
+
+        function itemCountChage(equipment_id,count){
              let p=new RegExp("\"equipment_id\":"+equipment_id +",\"count\":([^,]+)",'g')
              let t= new RegExp(`\\d+`,'g')
              localStorage.setItem(`itemList`, localStorage.itemList.replace(p,(match,p1)=>{
@@ -414,26 +568,40 @@
 
         }
         function txtToClipboard(){
-            let trList=[...document.querySelector("table.table.table-bordered.mapDrop-table.helper>tbody").querySelectorAll('tr')],tab='\t',enter='\r\n',count=0,text=`${tab}pcr简易装备库${tab}数据目:${trList.length}${enter}`
-            text+=`章节${tab}需求${tab}效率${tab}适用${tab}推荐${tab}最大${enter}`
+            let trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody>tr")],space=' ',enter='\r\n',count=0,
+                calcLength=(sum=12)=>{let a=[];a.length=sum;return a.fill(space,0,sum).join(``)},
+                title=`${calcLength(17)}pcr简易装备库${calcLength()}数据目:${trList.length}${enter}`,text=``
+
+            text+=`\u200E ${calcLength(3)}章节${calcLength(6)}需求${calcLength(6)}效率${calcLength(6)}适用${calcLength(6)}推荐${calcLength(6)}最大${enter}`
             for(let t of trList ){
                  if(count>100){break;}
+                 text+=calcLength(6)
                 for(let b=1;b<13;b+=2 ){
-                   text+=(t.childNodes[b].innerText+tab)
+                    let lent=t.childNodes[b].innerText.length
+                    text+=(t.childNodes[b].innerText+calcLength(10-lent))
                 }
                 text=text.trim()
                 text+=enter
                 count+=1
             }
-            GM.setClipboard(text.trim());
+            GM.setClipboard(title+text.trim());
             alert(`已导出粘贴板,可复制至excel或社交平台`);
 
         }
         let modifyState = true;
         const deleteItem=(switchOn)=>{
+             switchOn&&(document.querySelector('span.switch-multiSelect').style.display=`inline`)||(document.querySelector('span.switch-multiSelect').style.display=`none`)
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
-                 ~~i.dataset.itemCount && switchOn ? $(i).addClass('helper--show-deleted-btn') : $(i).removeClass('helper--show-deleted-btn');
+                 ~~i.dataset.itemCount && switchOn && !!$(i).addClass('helper--show-deleted-btn') || $(i).removeClass('helper--show-deleted-btn')
             }
+        }
+        const multiSelectState=(switchOn=false)=>{
+            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
+                let c=~~i.dataset.itemCount
+                c&& i.classList.toggle("multiSelect-no",switchOn );
+                c&&!switchOn&&i.classList.toggle("multiSelect-yes",switchOn )
+            }
+             !switchOn&&document.querySelector('.switch-multiSelect').classList.toggle(`selected-completed`,0)
         }
         function genTable(mapData) {
             uniqueItem(mapData);
@@ -488,22 +656,7 @@
                     })
                 }, 200)
             })
-            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(function(e){
-                // 快速完成
-               const $this = $(e.target);
-                 const count=$this[0].dataset.itemCount
-                  if(!count)return flase
-                 const ID=$this[0].dataset.itemId
-                 const name=$this[0].dataset.itemName
-                 if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
-                     itemCountChage(ID,count);
-                     GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
-                     location.reload();
-
-                 }
-
-            })
-
+            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(changeItemCount)
             table.querySelectorAll('input[item-name]').forEach(inputDom=>{
                 const itemName = inputDom.getAttribute('item-name');
                 inputDom.addEventListener('keyup',async (e) => {
