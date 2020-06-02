@@ -147,18 +147,18 @@
     font-size: 15px;
     top: -0.1rem;
     margin-right: -1rem;
-    transition: all 0.1s;
+    transition: width 0s 0s,margin-right .3s ,top 0.3s,content 0s 1s;
 }
-.switch-multiSelectBtnState.selected-completed::after {
+.switch-multiSelectBtnState.selected-completedBtn::after {
     right: 3rem;
     content: '已选完成';
-    position: absolute;
-    font-size: 15px;
-    top: -0.1rem;
-    margin-right:0rem;
-    box-shadow: -1px 1px 3px #000;
+     font-size: 15px;
+    top: 0rem;
+    margin-right: 0rem;
+    box-shadow: -0.7px 1px 5.1px #000;
     border-radius: 11%;
     width: 4rem;
+    border: 1px solid #f5d68e;
 }
 .switch-multiSelectBtnState > .switch-handler {
 	position: absolute;
@@ -529,7 +529,8 @@
 
             const multiItem=()=>{
                 e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length-1]==`multiSelect-yes`))
-                document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completed`,document.querySelectorAll('.multiSelect-yes').length!=0)
+                let cls=document.querySelector('.switch-multiSelectBtnState').classList
+                document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completedBtn`,document.querySelectorAll('.multiSelect-yes').length!=0)
             }
               e.target.classList[e.target.classList.length-1]==`helper--show-deleted-btn`&&!singleItem()||multiItem()
             }
@@ -618,7 +619,7 @@
                 c&& i.classList.toggle("multiSelect-no",switchOn );
                 c&&!switchOn&&i.classList.toggle("multiSelect-yes",switchOn )
             }
-             !switchOn&&document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completed`,0)
+             !switchOn&&document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completedBtn`,switchOn)
         }
         function genTable(mapData) {
             uniqueItem(mapData);
