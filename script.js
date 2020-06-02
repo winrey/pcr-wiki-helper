@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.2.3
+// @version      2.2.4
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -136,10 +136,10 @@
 }
 
 .switch-multiSelect::after {
-    right: 2.7rem;
+    right: 4rem;
     content: '多选';
     position: absolute;
-    width: 4rem;
+    width: 2rem;
     font-size: 15px;
     top: -0.1rem;
     margin-right: -1rem;
@@ -152,6 +152,9 @@
     font-size: 15px;
     top: -0.1rem;
     margin-right:0rem;
+    box-shadow: -1px 1px 3px #000;
+    border-radius: 11%;
+    width: 4rem;
 }
 .switch-multiSelect > .switch-handler {
 	position: absolute;
@@ -183,25 +186,26 @@
     bottom: -0.2rem;
 }
 .switch-multiSelect.active > .switch-handler::after {
-     content: '\u00A0\u00A0\u00A0';
+    content: '\u00A0\u00A0\u00A0';
     color: #ffff;
     position: relative;
+    left: -1.6rem;
+    bottom: 0.1rem;
 
 }
 .switch-multiSelect.active > .switch-handler::before {
     content: '开';
     color: #f5f5f5;
-    left: 0.1rem;
-    bottom: 0.1rem;
-    box-shadow: -1px 1px 3px #000;
-    border-radius: 11%;
-    right: 1.1rem;
-    bottom: 0.18rem;
+    bottom: -0.12rem;
+    right: 0.2rem;
+    width: 2rem;
+    position: absolute;
 }
 .switch-multiSelect >.switch-handler::before {
     content: '\u00A0\u00A0\u00A0';
     color: #ffff;
-    position: relative;
+    position: absolute;
+    width: 2.6rem;
 
 }
 
@@ -211,7 +215,6 @@
             // 点击“存储队伍”按钮
             document.querySelector('.sticky-top button:nth-child(6)').click();
         }
-
 
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
@@ -375,8 +378,7 @@
             const quickModifyBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>快速修改</a>`);
             $(quickModifyBtn[0]).click(e => {
                 document.querySelector('table button:nth-child(1)').click();
-                document.getElementById('helper--modal-content').classList.toggle('helper--drop');
-
+                document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
                 deleteItem(modifyState)
                 let MultiSelect=document.querySelector('span.switch-multiSelect.active')
                 modifyState&&document.querySelector('span.switch-multiSelect').addEventListener(`click`,multiItemChange)
@@ -392,7 +394,6 @@
             const multipleBtn = $.parseHTML( `<span class=switch-multiSelect style="display:none"><span class="switch-handler"></span></span>`)
             $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
-
         }
 
         function createModal(...content) {
@@ -466,7 +467,6 @@
                                 class=""
                                 target="_blank"
                             >
-
                                 <img
                                     width="70"
                                     title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
@@ -529,7 +529,7 @@
             }
         const multiItemChange=(e)=>{
                 let cell=document.querySelectorAll('.multiSelect-yes')
-                if(confirm(`你目前选了${cell.length}个装备,开始修改,点击确定生效`)) {
+                if(cell.length&&confirm(`你目前选了${cell.length}个装备,开始修改,点击确定生效`)) {
                     for(let dom of [...cell]){
                         itemCountChage(dom.dataset.itemId,dom.dataset.itemCount);
                     }
@@ -606,7 +606,6 @@
             }
              !switchOn&&document.querySelector('.switch-multiSelect').classList.toggle(`selected-completed`,0)
         }
-
         function genTable(mapData) {
             uniqueItem(mapData);
             const bouns = getBouns();//
@@ -618,8 +617,8 @@
                         <th style="min-width: 67px; vertical-align: baseline;">效率</th>
                         <th style="min-width: 67px; vertical-align: baseline;">适用</th>
                         <th style="min-width: 67px; vertical-align: baseline;">推荐</th>
-                        <th style="min-width: 67px; vertical-align: baseline;">最大</th>
-                          <th> 掉落一覽 </th>
+<th style="min-width: 67px; vertical-align: baseline;">最大</th>
+                        <th> 掉落一覽 </th>
                     </thead>
                     <tbody>
                         ${mapData.map(m => `
