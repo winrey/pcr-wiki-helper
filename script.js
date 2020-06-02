@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.2.4
+// @version      2.2.6
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -83,6 +83,9 @@
     margin: 0 auto;
     position: relative;
 }
+.mapDrop-table .helper--calc-result-cell.un--wanted{
+ opacity: 0.4;
+}
 .mapDrop-table .helper-block {
     top: 1.6rem;
     right: .12rem;
@@ -117,7 +120,8 @@
 #helper--popBox, .helper--modal-backdrop {
     display: none !important;
 }
-.switch-multiSelect {
+.switch-multiSelectBtnState {
+    display:none;
 	width: 70px;
 	height: 32px;
 	border: solid 2px #ddd;
@@ -131,11 +135,11 @@
 	font-size: 14px;
     left: 5.1rem;
 }
-.switch-multiSelect> input[type="checkbox"] {
-	display: none;
+.switch-multiSelectBtnState.ready {
+	display: inline;
 }
 
-.switch-multiSelect::after {
+.switch-multiSelectBtnState::after {
     right: 4rem;
     content: '多选';
     position: absolute;
@@ -145,7 +149,7 @@
     margin-right: -1rem;
     transition: all 0.1s;
 }
-.switch-multiSelect.selected-completed::after {
+.switch-multiSelectBtnState.selected-completed::after {
     right: 3rem;
     content: '已选完成';
     position: absolute;
@@ -156,7 +160,7 @@
     border-radius: 11%;
     width: 4rem;
 }
-.switch-multiSelect > .switch-handler {
+.switch-multiSelectBtnState > .switch-handler {
 	position: absolute;
 	left: 2px;
 	top: .12rem;
@@ -169,31 +173,32 @@
 	-webkit-transition: all 0.3s;
 	transition: all 0.3s;
 }
-.switch-multiSelect.active {
+.switch-multiSelectBtnState.active {
 	border-color: #4cd964;
 	background-color: #4cd964;
 	padding-left: 0;
     padding-left: 2.6rem;
 }
-.switch-multiSelect.active > .switch-handler {
+.switch-multiSelectBtnState.active > .switch-handler {
 	left: 1.5rem;
 }
-.switch-multiSelect > .switch-handler::after {
-    color: #efedeb;
+.switch-multiSelectBtnState > .switch-handler::after {
+    color: #000000;
     content: '关';
     position: absolute;
     left: 1.3rem;
     bottom: -0.2rem;
+    -webkit-transition: color .3s 0.1s;
 }
-.switch-multiSelect.active > .switch-handler::after {
+.switch-multiSelectBtnState.active > .switch-handler::after {
     content: '\u00A0\u00A0\u00A0';
-    color: #ffff;
+    color: #fff0;
     position: relative;
     left: -1.6rem;
     bottom: 0.1rem;
 
 }
-.switch-multiSelect.active > .switch-handler::before {
+.switch-multiSelectBtnState.active > .switch-handler::before {
     content: '开';
     color: #f5f5f5;
     bottom: -0.12rem;
@@ -201,13 +206,15 @@
     width: 2rem;
     position: absolute;
 }
-.switch-multiSelect >.switch-handler::before {
+.switch-multiSelectBtnState >.switch-handler::before {
     content: '\u00A0\u00A0\u00A0';
-    color: #ffff;
+    color: #fff0;
     position: absolute;
     width: 2.6rem;
+    -webkit-transition: color .3s .1s;
 
 }
+
 
 `)
 
@@ -375,23 +382,23 @@
             commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
             commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
-            const quickModifyBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>快速修改</a>`);
+            const quickModifyBtn = $.parseHTML(`<a href="##" style='margin-left: 1rem;'>快速修改</a>`);
             $(quickModifyBtn[0]).click(e => {
                 document.querySelector('table button:nth-child(1)').click();
                 document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
                 deleteItem(modifyState)
-                let MultiSelect=document.querySelector('span.switch-multiSelect.active')
-                modifyState&&document.querySelector('span.switch-multiSelect').addEventListener(`click`,multiItemChange)
-                modifyState&&document.querySelector('span.switch-multiSelect>.switch-handler').addEventListener(`click`,(e)=>{
-                    !MultiSelect&&(MultiSelect=document.querySelector('span.switch-multiSelect.active'))
-                    document.querySelector('span.switch-multiSelect').classList.toggle("active", MultiSelect=!MultiSelect);
+                let MultiSelect=document.querySelector('span.switch-multiSelectBtnState.active')
+                modifyState&&document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`,multiItemChange)
+                modifyState&&document.querySelector('span.switch-multiSelectBtnState>.switch-handler').addEventListener(`click`,(e)=>{
+                    !MultiSelect&&(MultiSelect=document.querySelector('span.switch-multiSelectBtnState.active'))
+                    document.querySelector('span.switch-multiSelectBtnState').classList.toggle("active", MultiSelect=!MultiSelect);
                     multiSelectState(MultiSelect);e.stopImmediatePropagation()})
-                !modifyState&&!document.querySelector('span.switch-multiSelect').classList.toggle("active", modifyState)&&multiSelectState(modifyState)
+                !modifyState&&!document.querySelector('span.switch-multiSelectBtnState').classList.toggle("active", modifyState)&&multiSelectState(modifyState)
                 modifyState = !modifyState;
                 return false;
             });
             const reCalcBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>重新计算</a>`);
-            const multipleBtn = $.parseHTML( `<span class=switch-multiSelect style="display:none"><span class="switch-handler"></span></span>`)
+            const multipleBtn = $.parseHTML( `<span class=switch-multiSelectBtnState><span class="switch-handler"></span></span>`)
             $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
         }
@@ -436,7 +443,7 @@
                     <div class="breadcrumb" style="${boxStyle}">
                         <div id="helper--modal-content" style="${contentStyle}">${content.join("")}</div>
                         <button id="helper--modal-close" type="button" class="pcbtn mr-3"> 关闭 </button>
-                        <button id="helper--modal-Clipboard" type="button" class="pcbtn mr-3" title='导出到粘贴板'> &#128203 </button>
+                        <button id="helper--modal-Clipboard" type="button" class="pcbtn mr-3" title='导出到粘贴板'> >&#128203 </button>
                     </div>
                 </div>
             `;
@@ -456,7 +463,7 @@
                         <div class="p-2 text-center mapDrop-item mr-2 helper-cell"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
 
 
-                            <div class='helper--calc-result-cell'
+                            <div class='helper--calc-result-cell  ${!item.count&&`un--wanted`||''}'
                                  onclick
                                  ${`data-item-count=${item.count}`}
                                  data-item-id=${item.img.match(/\d{6}/)[0]}
@@ -471,7 +478,6 @@
                                     width="70"
                                     title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
                                     src="${item.img}"
-                                    ${!item.count&&`style="opacity:0.4;"`}
                                     class="aligncenter"
                                 >
 
@@ -523,7 +529,7 @@
 
             const multiItem=()=>{
                 e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length-1]==`multiSelect-yes`))
-                document.querySelector('.switch-multiSelect').classList.toggle(`selected-completed`,document.querySelectorAll('.multiSelect-yes').length!=0)
+                document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completed`,document.querySelectorAll('.multiSelect-yes').length!=0)
             }
               e.target.classList[e.target.classList.length-1]==`helper--show-deleted-btn`&&!singleItem()||multiItem()
             }
@@ -558,17 +564,25 @@
               }
 
             }
-            mapData.sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
+            //mapData.sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
         }
-        function sortColumn (){//-1>a,b 1>b,a
-          let trList=[...document.querySelector("table.table.table-bordered.mapDrop-table.helper>tbody").querySelectorAll('tr')]
-          .sort((a,b)=>{return ~~a.dataset.isUniqueItem&&-1||~~a.dataset.isUniqueItem&&1||0})
-          .sort((a,b)=>{return ~~a.dataset.isUniqueItem&&~~b.dataset.isUniqueItem&&(~~b.children[2].dataset.dropEffective-~~a.children[2].dataset.dropEffective)||0})
-          document.querySelector("table.table.table-bordered.mapDrop-table.helper>tbody").innerHTML=``
-          for(let t of trList){
-              document.querySelector("table.table.table-bordered.mapDrop-table.helper>tbody").appendChild(t)
-          }
-
+        function sortColumn (e){//-1>a,b 1>b,a//greedy
+            let trList=[...e.target.closest('table').querySelectorAll(`tbody>tr`)]
+            const greedy=()=>{
+                trList.sort((a,b)=>{return ~~a.dataset.isUniqueItem&&-1||~~a.dataset.isUniqueItem&&1||0})
+                    .sort((a,b)=>{return ~~a.dataset.isUniqueItem&&~~b.dataset.isUniqueItem&&(~~b.children[2].dataset.dropEffective-~~a.children[2].dataset.dropEffective)||0})
+                return 1
+            }
+            const dropEffective=()=>{
+                trList.sort((a,b)=>{return ~~b.children[2].dataset.dropEffective-~~a.children[2].dataset.dropEffective||0})
+                return 0
+            }
+            e.target.dataset.sortType = !~~e.target.dataset.sortType&&greedy()||dropEffective()//切换状态保存
+            let tbody=e.target.closest('table').querySelector("tbody")
+            tbody.innerHTML=''
+            for(let t of trList){
+                tbody.appendChild(t)
+            }
         }
         function txtToClipboard(){
             let trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody>tr")],space=' ',enter='\r\n',count=0,
@@ -593,7 +607,7 @@
         }
         let modifyState = true;
         const deleteItem=(switchOn)=>{
-             switchOn&&(document.querySelector('span.switch-multiSelect').style.display=`inline`)||(document.querySelector('span.switch-multiSelect').style.display=`none`)
+            document.querySelector('span.switch-multiSelectBtnState').classList.toggle(`ready`,switchOn)
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
                  ~~i.dataset.itemCount && switchOn && !!$(i).addClass('helper--show-deleted-btn') || $(i).removeClass('helper--show-deleted-btn')
             }
@@ -604,7 +618,7 @@
                 c&& i.classList.toggle("multiSelect-no",switchOn );
                 c&&!switchOn&&i.classList.toggle("multiSelect-yes",switchOn )
             }
-             !switchOn&&document.querySelector('.switch-multiSelect').classList.toggle(`selected-completed`,0)
+             !switchOn&&document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completed`,0)
         }
         function genTable(mapData) {
             uniqueItem(mapData);
@@ -612,7 +626,7 @@
             const html = `
                 <table width="1000px" class="table table-bordered mapDrop-table helper">
                     <thead>
-                        <th style="min-width: 71px; vertical-align: baseline;cursor: pointer;" title='点击可转换成贪心排序'>章节</th>
+                        <th style="min-width: 71px; vertical-align: baseline;cursor: pointer;" data-sort-type='0' title='点击可转换成贪心排序'>章节</th>
                         <th style="min-width: 67px; vertical-align: baseline;">需求</th>
                         <th style="min-width: 67px; vertical-align: baseline;">效率</th>
                         <th style="min-width: 67px; vertical-align: baseline;">适用</th>
