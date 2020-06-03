@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.2.6
+// @version      2.2.7
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -138,8 +138,14 @@
 .switch-multiSelectBtnState.ready {
 	display: inline;
 }
+.switch-handler.ready{
+    display: inline;
+}
+.switch-multiSelectBtnState.selected-completedBtn{
+    pointer-events: none;
+}
 
-.switch-multiSelectBtnState::after {
+.switch-multiSelectBtnState::before {
     right: 4rem;
     content: '多选';
     position: absolute;
@@ -149,21 +155,27 @@
     margin-right: -1rem;
     transition: width 0s 0s,margin-right .3s ,top 0.3s,content 0s 1s;
 }
-.switch-multiSelectBtnState.selected-completedBtn::after {
+.switch-multiSelectBtnState.selected-completedBtn::before {
     right: 3rem;
     content: '已选完成';
-     font-size: 15px;
-    top: 0rem;
+    font-size: 14px;
+    top: -0.08rem;
     margin-right: 0rem;
-    box-shadow: -0.7px 1px 5.1px #000;
     border-radius: 11%;
     width: 4rem;
-    border: 1px solid #f5d68e;
+    border: 2px outset #f5d68e;
+    pointer-events: all;
+    line-height: 15.9px;
+    transition: box-shadow 0.3s
+
 }
-.switch-multiSelectBtnState > .switch-handler {
+.switch-multiSelectBtnState.selected-completedBtn:hover::before {
+    box-shadow: -0.7px 1px 5.1px #000;
+}
+.switch-handler {
 	position: absolute;
-	left: 2px;
-	top: .12rem;
+    left: 36rem;
+    top: 2.35rem;
     width: 1rem;
     height: 1rem;
 	background-color: #FFF;
@@ -172,6 +184,7 @@
 	box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
 	-webkit-transition: all 0.3s;
 	transition: all 0.3s;
+    display: none;
 }
 .switch-multiSelectBtnState.active {
 	border-color: #4cd964;
@@ -179,18 +192,18 @@
 	padding-left: 0;
     padding-left: 2.6rem;
 }
-.switch-multiSelectBtnState.active > .switch-handler {
-	left: 1.5rem;
+.switch-handler.ready.active {
+    left: 37.4rem;
 }
-.switch-multiSelectBtnState > .switch-handler::after {
+.switch-handler::after {
     color: #000000;
     content: '关';
     position: absolute;
     left: 1.3rem;
-    bottom: -0.2rem;
+    bottom: -0.3rem;
     -webkit-transition: color .3s 0.1s;
 }
-.switch-multiSelectBtnState.active > .switch-handler::after {
+.switch-handler.active::after {
     content: '\u00A0\u00A0\u00A0';
     color: #fff0;
     position: relative;
@@ -198,15 +211,15 @@
     bottom: 0.1rem;
 
 }
-.switch-multiSelectBtnState.active > .switch-handler::before {
+.switch-handler.active::before {
     content: '开';
     color: #f5f5f5;
-    bottom: -0.12rem;
-    right: 0.2rem;
-    width: 2rem;
+    bottom: -0.32rem;
+    right: -0.3rem;
+    width: 2.6rem;
     position: absolute;
 }
-.switch-multiSelectBtnState >.switch-handler::before {
+.switch-handler::before {
     content: '\u00A0\u00A0\u00A0';
     color: #fff0;
     position: absolute;
@@ -389,16 +402,15 @@
                 deleteItem(modifyState)
                 let MultiSelect=document.querySelector('span.switch-multiSelectBtnState.active')
                 modifyState&&document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`,multiItemChange)
-                modifyState&&document.querySelector('span.switch-multiSelectBtnState>.switch-handler').addEventListener(`click`,(e)=>{
+                modifyState&&document.querySelector('span.switch-handler').addEventListener(`click`,(e)=>{
                     !MultiSelect&&(MultiSelect=document.querySelector('span.switch-multiSelectBtnState.active'))
-                    document.querySelector('span.switch-multiSelectBtnState').classList.toggle("active", MultiSelect=!MultiSelect);
+                    switchMultBtnState("active", MultiSelect=!MultiSelect)
                     multiSelectState(MultiSelect);e.stopImmediatePropagation()})
-                !modifyState&&!document.querySelector('span.switch-multiSelectBtnState').classList.toggle("active", modifyState)&&multiSelectState(modifyState)
                 modifyState = !modifyState;
                 return false;
             });
             const reCalcBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>重新计算</a>`);
-            const multipleBtn = $.parseHTML( `<span class=switch-multiSelectBtnState><span class="switch-handler"></span></span>`)
+            const multipleBtn = $.parseHTML( `<span class=switch-multiSelectBtnState></span><span class="switch-handler"></span>`)
             $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
         }
@@ -608,18 +620,25 @@
         }
         let modifyState = true;
         const deleteItem=(switchOn)=>{
-            document.querySelector('span.switch-multiSelectBtnState').classList.toggle(`ready`,switchOn)
+            switchMultBtnState(`ready`,switchOn)
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
                  ~~i.dataset.itemCount && switchOn && !!$(i).addClass('helper--show-deleted-btn') || $(i).removeClass('helper--show-deleted-btn')
             }
+           !switchOn&&multiSelectState()
         }
+       const switchMultBtnState=(cls,switchOn=false)=>{
+           let state=['ready','active','selected-completedBtn']
+           !switchOn&&cls==state[0]&&state.forEach(i=>{document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i,switchOn)
+                                                       document.querySelector('span.switch-handler').classList.toggle(i,switchOn)})
+           document.querySelector('span.switch-multiSelectBtnState').classList.toggle(cls,switchOn)
+           document.querySelector('span.switch-handler').classList.toggle(cls,switchOn)
+       }
         const multiSelectState=(switchOn=false)=>{
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
                 let c=~~i.dataset.itemCount
                 c&& i.classList.toggle("multiSelect-no",switchOn );
                 c&&!switchOn&&i.classList.toggle("multiSelect-yes",switchOn )
             }
-             !switchOn&&document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completedBtn`,switchOn)
         }
         function genTable(mapData) {
             uniqueItem(mapData);
