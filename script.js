@@ -155,7 +155,7 @@
     margin-right: -1rem;
     transition: width 0s 0s,margin-right .3s ,top 0.3s,content 0s 1s;
 }
-.switch-multiSelectBtnState.selected-completedBtn::before {
+.switch-multiSelectBtnState.active.selected-completedBtn::before {
     right: 3rem;
     content: '已选完成';
     font-size: 14px;
