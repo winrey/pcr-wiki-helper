@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.3.1
+// @version      2.2.7
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -46,37 +46,15 @@
 }
 .helper--calc-result-cell.helper--show-deleted-btn.multiSelect-no::after {
   content: '\u00A0\u00A0\u00A0';
-  position: absolute;
-  bottom: 70px;
-  background-color: #ff0000;
-  color: #fff;
-  line-height: 0.9rem;
-  border-radius: 30%;
-  padding: 3px;
-  opacity: 50%;
-  cursor: pointer;
-  z-index: 10000;
 }
 .helper--calc-result-cell.helper--show-deleted-btn.multiSelect-yes::after {
   content: '\u2714';
-  position: absolute;
-  bottom: 70px;
-  background-color: #ff0000;
-  color: #fff;
-  line-height: 0.9rem;
-  border-radius: 30%;
-  padding: 3px;
-  opacity: 50%;
-  cursor: pointer;
-  z-index: 10000;
 }
 .mapDrop-table .helper-oddTri {
     right: .3rem;
     top: 1.6rem;
     color: black;
 }
-
-
 .mapDrop-table .helper--calc-result-cell{
     width: 70px;
     height: 70px;
@@ -118,6 +96,9 @@
 }
 
 #helper--popBox, .helper--modal-backdrop {
+    display: none !important;
+}
+#popBox.modal.fade.show.helper, div.modal-backdrop.fade.show.helper {
     display: none !important;
 }
 a.singleSelect{
@@ -236,10 +217,11 @@ a.singleSelect.ready{
         const  saveTeamData = async() => {
             // 点击“存储队伍”按钮
             document.querySelector('.sticky-top button:nth-child(6)').click();
-            document.querySelector('a[href="##"]').click()
-            await sleep(1000);
-            document.querySelector('.modal.fade.show').click();
-
+            let d=document.querySelector('a[href="##"]')
+            d&&d.click()
+            await sleep(2000);
+            document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',true)
+            document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',true)
         }
 
         function autoSwitch2MapList() {
@@ -742,6 +724,9 @@ a.singleSelect.ready{
         function hideModal() {
             $("#helper--modal").css("opacity", 0);
             $("#helper--modal").css("pointer-events", "none");
+            document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',false)
+            document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',false)
+             document.querySelector('#popBox.modal.fade.show').click()
         }
 
         function showModal(...content) {
@@ -768,8 +753,8 @@ a.singleSelect.ready{
         async function handleClickCalcBtn() {
 
             autoSwitch2MapList();
-            await sleep(500);
-
+            await sleep(300);
+            saveTeamData()
             // 自动调整至旧版数量
             //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
             //if(![...tempDom.classList].includes('active'))
