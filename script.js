@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.2.7
+// @version      3.0.1
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -27,7 +27,7 @@
 (function() {
     'use strict';
 
-    const sleep = time => new Promise(r => setTimeout(r), time);
+    const sleep = time => new Promise(r => setTimeout(r,time));
 
     $(document).ready(function() {
         GM_addStyle(`
@@ -120,26 +120,32 @@
 #helper--popBox, .helper--modal-backdrop {
     display: none !important;
 }
+a.singleSelect{
+  display: none
+}
+a.singleSelect.ready{
+  display: inline
+}
 .switch-multiSelectBtnState {
-    display:none;
-	width: 70px;
-	height: 32px;
-	border: solid 2px #ddd;
-	border-radius: 30px;
-	background-color: #FFF;
-	position: relative;
-    padding-left: 2.6rem;;
-	-webkit-transition: background-color 0.3s;
-	transition: background-color 0.3s;
-	-webkit-user-select: none;
-	font-size: 14px;
+    display: none;
+    width: 70px;
+    height: 32px;
+    border: solid 2px #ddd;
+    border-radius: 30px;
+    background-color: #FFF;
+    position: relative;
+    padding-left: 2.6rem;
+    -webkit-transition: background-color 0.3s;
+    transition: background-color 0.3s;
+    -webkit-user-select: none;
+    font-size: 14px;
     left: 5.1rem;
 }
 .switch-multiSelectBtnState.ready {
 	display: inline;
 }
 .switch-handler.ready{
-    display: inline;
+    display: inline-block;
 }
 .switch-multiSelectBtnState.selected-completedBtn{
     pointer-events: none;
@@ -173,67 +179,67 @@
     box-shadow: -0.7px 1px 5.1px #000;
 }
 .switch-handler {
-	position: absolute;
-    left: 36rem;
-    top: 2.35rem;
+    position: relative;
+    left: 2.5rem;
+    top: 0.25rem;
     width: 1rem;
     height: 1rem;
-	background-color: #FFF;
-	border-radius: 50%;
-	-webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
-	box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
-	-webkit-transition: all 0.3s;
-	transition: all 0.3s;
+    background-color: #FFF;
+    border-radius: 100% 100%;
+    -webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
+    box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.52);
+    -webkit-transition: all 0.3s;
+    transition: all 0.3s;
     display: none;
 }
 .switch-multiSelectBtnState.active {
 	border-color: #4cd964;
 	background-color: #4cd964;
-	padding-left: 0;
-    padding-left: 2.6rem;
 }
 .switch-handler.ready.active {
-    left: 37.4rem;
+    left: 3.9rem;
 }
 .switch-handler::after {
     color: #000000;
     content: '关';
-    position: absolute;
-    left: 1.3rem;
-    bottom: -0.3rem;
+    position: relative;
+    bottom: 0.25rem;
+    left: -0.6rem;
+    padding-left: 1rem;
     -webkit-transition: color .3s 0.1s;
 }
 .switch-handler.active::after {
-    content: '\u00A0\u00A0\u00A0';
+    content: '   ';
     color: #fff0;
     position: relative;
-    left: -1.6rem;
-    bottom: 0.1rem;
-
+    left: -4rem;
 }
 .switch-handler.active::before {
     content: '开';
     color: #f5f5f5;
-    bottom: -0.32rem;
-    right: -0.3rem;
-    width: 2.6rem;
-    position: absolute;
+    right: 1.4rem;
+    padding-right: 1.4rem;
+
 }
 .switch-handler::before {
     content: '\u00A0\u00A0\u00A0';
     color: #fff0;
-    position: absolute;
     width: 2.6rem;
+    bottom: 0.2rem;
     -webkit-transition: color .3s .1s;
-
+    position: relative;
 }
 
 
 `)
 
-        const saveTeamData = () => {
+        const  saveTeamData = async() => {
             // 点击“存储队伍”按钮
             document.querySelector('.sticky-top button:nth-child(6)').click();
+            document.querySelector('a[href="##"]').click()
+            await sleep(1000);
+            document.querySelector('.modal.fade.show').click();
+
         }
 
         function autoSwitch2MapList() {
@@ -400,18 +406,15 @@
                 document.querySelector('table button:nth-child(1)').click();
                 document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
                 deleteItem(modifyState)
-                let MultiSelect=document.querySelector('span.switch-multiSelectBtnState.active')
                 modifyState&&document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`,multiItemChange)
                 modifyState&&document.querySelector('span.switch-handler').addEventListener(`click`,(e)=>{
-                    !MultiSelect&&(MultiSelect=document.querySelector('span.switch-multiSelectBtnState.active'))
-                    switchMultBtnState("active", MultiSelect=!MultiSelect)
-                    multiSelectState(MultiSelect);e.stopImmediatePropagation()})
+                    multiSelectState(switchMultBtnState("active", !document.querySelector('span.switch-multiSelectBtnState.active')));e.stopImmediatePropagation()})
                 modifyState = !modifyState;
                 return false;
             });
-            const reCalcBtn = $.parseHTML(`<a href style='margin-left: 1rem;'>重新计算</a>`);
+            const reCalcBtn = $.parseHTML(`<a href class=singleSelect style='margin-left: 1rem;'title='修改所有装备后 点击自动保存和计算'>重新计算</a>`);
             const multipleBtn = $.parseHTML( `<span class=switch-multiSelectBtnState></span><span class="switch-handler"></span>`)
-            $(reCalcBtn[0]).click(e => { handleClickCalcBtn(); return false;});
+            $(reCalcBtn[0]).click(() => { saveTeamData();handleClickCalcBtn(); return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
         }
 
@@ -480,6 +483,7 @@
                                  ${`data-item-count=${item.count}`}
                                  data-item-id=${item.img.match(/\d{6}/)[0]}
                                  data-item-name=${item.name}
+                                 title='总需:满'
                              >
                             <a
                                 href="${item.url}"
@@ -501,7 +505,7 @@
                             <span class="text-center py-1 d-block"
                                   ${!item.count&&`style="opacity:0.4"`}
                                   title="${item.information}"
-                                  data-total-need=${item.count}//"${(item.has || 0) + (item.count || 0)}"
+                                  data-total-need=${item.count}
                              > ${item.count&&`总需`+item.count||`已满`} </span>
                             <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                         </div>
@@ -542,7 +546,7 @@
             const multiItem=()=>{
                 e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length-1]==`multiSelect-yes`))
                 let cls=document.querySelector('.switch-multiSelectBtnState').classList
-                document.querySelector('.switch-multiSelectBtnState').classList.toggle(`selected-completedBtn`,document.querySelectorAll('.multiSelect-yes').length!=0)
+                cls.toggle(`selected-completedBtn`,document.querySelectorAll('.multiSelect-yes').length!=0)
             }
               e.target.classList[e.target.classList.length-1]==`helper--show-deleted-btn`&&!singleItem()||multiItem()
             }
@@ -628,10 +632,16 @@
         }
        const switchMultBtnState=(cls,switchOn=false)=>{
            let state=['ready','active','selected-completedBtn']
-           !switchOn&&cls==state[0]&&state.forEach(i=>{document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i,switchOn)
-                                                       document.querySelector('span.switch-handler').classList.toggle(i,switchOn)})
+           !switchOn&&cls==state[1]&&document.querySelector('a.singleSelect').classList.toggle(state[0],!switchOn)
+          if(!switchOn&&cls==state[0]&&!state.forEach(i=>{document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i,switchOn)
+                                                          document.querySelector('span.switch-handler').classList.toggle(i,switchOn)
+                                                          document.querySelector('a.singleSelect').classList.toggle(i,switchOn)}))return switchOn;
+           if(!switchOn&&cls==(state.shift()&&state)[0]&&!state.forEach(i=>{document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i,switchOn)
+                                                       document.querySelector('span.switch-handler').classList.toggle(i,switchOn)}))return switchOn;
            document.querySelector('span.switch-multiSelectBtnState').classList.toggle(cls,switchOn)
            document.querySelector('span.switch-handler').classList.toggle(cls,switchOn)
+           switchOn&&cls==state[1]?document.querySelector('a.singleSelect').classList.toggle(state[0],!switchOn):document.querySelector('a.singleSelect').classList.toggle(state[0],switchOn)
+           return switchOn
        }
         const multiSelectState=(switchOn=false)=>{
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
@@ -704,7 +714,7 @@
                             .closest('div').querySelector('input');
                         inputDom.value = newNum;
                         inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
-                        //saveData();
+
 
                         // 在修改库存后，修改结果页的库存显示
                         table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
@@ -712,14 +722,16 @@
                             const itemSpanDom = dom.closest('div').querySelector('span.text-center');
                             const title = itemSpanDom.getAttribute("title");
                             let totalNeed = itemSpanDom.getAttribute("data-total-need");
-                            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed - newNum}` : "已满";
+                            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
                             itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                            dom.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);;
                         })
 
                         // 在输入掉落数时同步所有相同装备下的 input 的 value
                         table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
                             dom.value = newNum;
                         })
+
                     }
                 });
             });
@@ -756,7 +768,7 @@
         async function handleClickCalcBtn() {
 
             autoSwitch2MapList();
-            await sleep(100);
+            await sleep(500);
 
             // 自动调整至旧版数量
             //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
