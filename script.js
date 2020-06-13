@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.2.7
+// @version      2.3.2
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -396,7 +396,7 @@ a.singleSelect.ready{
             });
             const reCalcBtn = $.parseHTML(`<a href class=singleSelect style='margin-left: 1rem;'title='修改所有装备后 点击自动保存和计算'>重新计算</a>`);
             const multipleBtn = $.parseHTML( `<span class=switch-multiSelectBtnState></span><span class="switch-handler"></span>`)
-            $(reCalcBtn[0]).click(() => { saveTeamData();handleClickCalcBtn(); return false;});
+            $(reCalcBtn[0]).click(() => {handleClickCalcBtn(); return false;});
             showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
         }
 
@@ -553,17 +553,21 @@ a.singleSelect.ready{
              }))
          };
         function uniqueItem(mapData){
-            let sortData=JSON.stringify(mapData);
+            let itmes=[];
             for(let i=0;i<mapData.length;i++){
-              for(let item of mapData[i].items){
-                  if( item.count>0&&[...sortData.matchAll(new RegExp(item.name,`g`))].length<2){
-                      mapData[i].IsuniqueItem=true
-                      item.Unique=true
-                  }
-              }
-
+                itmes.push(...mapData[i].items)
             }
-            //mapData.sort((a,b)=>{return a.IsuniqueItem&&b.IsuniqueItem&&(Math.round(b.effective * 100)-Math.round(a.effective * 100))||0})
+            for(let t of itmes){
+                itmes[t.name]=itmes[t.name]&&itmes[t.name]+1||1
+            }
+            for(let i=0;i<mapData.length;i++){
+                for(const item of mapData[i].items){
+                    if( item.count>0&&itmes[item.name]<2){
+                        mapData[i].IsuniqueItem=true
+                        item.Unique=true
+                    }
+                }
+            }
         }
         function sortColumn (e){//-1>a,b 1>b,a//greedy
             let trList=[...e.target.closest('table').querySelectorAll(`tbody>tr`)]
@@ -726,7 +730,7 @@ a.singleSelect.ready{
             $("#helper--modal").css("pointer-events", "none");
             document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',false)
             document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',false)
-             document.querySelector('#popBox.modal.fade.show').click()
+            document.querySelector('#popBox.modal.fade.show').click()
         }
 
         function showModal(...content) {
