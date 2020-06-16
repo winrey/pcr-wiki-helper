@@ -757,7 +757,7 @@ a.singleSelect.ready{
 
             autoSwitch2MapList();
             await sleep(300);
-            saveTeamData()；
+            saveTeamData();
             // 自动调整至旧版数量
             //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
             //if(![...tempDom.classList].includes('active'))
