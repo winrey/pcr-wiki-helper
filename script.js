@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.3.2
+// @version      2.3.3
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -98,6 +98,7 @@
 #helper--popBox, .helper--modal-backdrop {
     display: none !important;
 }
+
 #popBox.modal.fade.show.helper, div.modal-backdrop.fade.show.helper {
     display: none !important;
 }
@@ -478,7 +479,6 @@ a.singleSelect.ready{
                                     src="${item.img}"
                                     class="aligncenter"
                                 >
-
                             <span class="oddTri helper-oddTri">
                             <i class="dropOdd text-center helper-block ">
                              ${Math.round(item.odd * 100)}%</i></span>
@@ -717,7 +717,6 @@ a.singleSelect.ready{
                         table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
                             dom.value = newNum;
                         })
-
                     }
                 });
             });
@@ -758,7 +757,7 @@ a.singleSelect.ready{
 
             autoSwitch2MapList();
             await sleep(300);
-            saveTeamData()
+            saveTeamData()；
             // 自动调整至旧版数量
             //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
             //if(![...tempDom.classList].includes('active'))
