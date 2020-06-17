@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.3.3
+// @version      2.3.4
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -68,7 +68,6 @@
     top: 1.6rem;
     right: .12rem;
 }
-
 #helper--bottom-btn-group {
   position: fixed;
   right: calc(60px + 1% - 2px);
@@ -78,7 +77,6 @@
   flex-wrap: wrap;
   flex-direction: column;
 }
-
 .helper--nav-to-level.helper--important::after {
   content: "独";
   color: #e60c0c;
@@ -86,19 +84,15 @@
   position: relative;
   top: -0.8em;
 }
-
 #helper--modal-content:not(.helper--drop) input[item-name] {
     display: none;
 }
-
 #helper--modal-content input[item-name] {
     width: 6em;
 }
-
 #helper--popBox, .helper--modal-backdrop {
     display: none !important;
 }
-
 #popBox.modal.fade.show.helper, div.modal-backdrop.fade.show.helper {
     display: none !important;
 }
@@ -132,7 +126,6 @@ a.singleSelect.ready{
 .switch-multiSelectBtnState.selected-completedBtn{
     pointer-events: none;
 }
-
 .switch-multiSelectBtnState::before {
     right: 4rem;
     content: '多选';
@@ -155,7 +148,6 @@ a.singleSelect.ready{
     pointer-events: all;
     line-height: 15.9px;
     transition: box-shadow 0.3s
-
 }
 .switch-multiSelectBtnState.selected-completedBtn:hover::before {
     box-shadow: -0.7px 1px 5.1px #000;
@@ -201,7 +193,6 @@ a.singleSelect.ready{
     color: #f5f5f5;
     right: 1.4rem;
     padding-right: 1.4rem;
-
 }
 .switch-handler::before {
     content: '\u00A0\u00A0\u00A0';
@@ -211,8 +202,6 @@ a.singleSelect.ready{
     -webkit-transition: color .3s .1s;
     position: relative;
 }
-
-
 `)
 
         const  saveTeamData = async() => {
@@ -459,8 +448,6 @@ a.singleSelect.ready{
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item =>`
                         <div class="p-2 text-center mapDrop-item mr-2 helper-cell"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
-
-
                             <div class='helper--calc-result-cell  ${!item.count&&`un--wanted`||''}'
                                  onclick
                                  ${`data-item-count=${item.count}`}
@@ -587,26 +574,32 @@ a.singleSelect.ready{
                 tbody.appendChild(t)
             }
         }
-        function txtToClipboard(){
-            let trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody>tr")],space=' ',enter='\r\n',count=0,
-                calcLength=(sum=12)=>{let a=[];a.length=sum;return a.fill(space,0,sum).join(``)},
-                title=`${calcLength(17)}pcr简易装备库${calcLength()}数据目:${trList.length}${enter}`,text=``
-
-            text+=`\u200E ${calcLength(3)}章节${calcLength(6)}需求${calcLength(6)}效率${calcLength(6)}适用${calcLength(6)}推荐${calcLength(6)}最大${enter}`
+        async function txtToClipboard(){
+            const trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody>tr")],space=' ',enter='\r\n',
+                  howMuchSpace=(sum=12,a)=>{return a=[],a.length=sum,a.fill(space,0,sum).join(``)},
+                  title=`${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${20}${enter}`;
+            let count=0,
+                text=`\u200E ${howMuchSpace(3)}章节${howMuchSpace(6)}需求${howMuchSpace(6)}效率${howMuchSpace(6)}适用${howMuchSpace(6)}推荐${howMuchSpace(6)}最大${enter}`;
             for(let t of trList ){
-                 if(count>100){break;}
-                 text+=calcLength(6)
+                if(count>=20){break;}
+                text+=howMuchSpace(5)
                 for(let b=1;b<13;b+=2 ){
                     let lent=t.childNodes[b].innerText.length
-                    text+=(t.childNodes[b].innerText+calcLength(10-lent))
+                    text+=(t.childNodes[b].innerText+howMuchSpace(10-lent))
                 }
                 text=text.trim()
                 text+=enter
                 count+=1
             }
-            GM.setClipboard(title+text.trim());
-            alert(`已导出粘贴板,可复制至excel或社交平台`);
-
+            document.querySelector('.modal-body button:nth-child(1)').click();
+            await sleep(20)
+            //document.querySelector('.wating').parentElement.classList.toggle('atTop')
+            document.querySelector('.wating').parentElement
+                .parentElement.parentElement
+                .addEventListener("DOMNodeRemoved",
+                                  ()=>{GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}已在服务器为你缓存7天,将于${(d=>`${d.getMonth()+1}月${d.getDate()}号`)(new Date(new Date().getTime()+7*86400000))}删除！请尽快打开链接:${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|${document.querySelector('.modal-body input')._value}${howMuchSpace(42-document.querySelector('.modal-body input')._value.length)}|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}并点击储存队伍`);
+                                       document.querySelector('.modal-body button:nth-child(2)').click();
+                                       alert(`已导出粘贴板,可复制至word、社交平台`);},{once:true})
         }
         let modifyState = true;
         const deleteItem=(switchOn)=>{
@@ -757,7 +750,7 @@ a.singleSelect.ready{
 
             autoSwitch2MapList();
             await sleep(300);
-            saveTeamData()；
+            saveTeamData();
             // 自动调整至旧版数量
             //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
             //if(![...tempDom.classList].includes('active'))
