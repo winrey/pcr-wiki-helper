@@ -575,13 +575,12 @@ a.singleSelect.ready{
             }
         }
         async function txtToClipboard(){
-            const trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody>tr")],space=' ',enter='\r\n',
+            const trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+20)")],space=' ',enter='\r\n',
                   howMuchSpace=(sum=12,a)=>{return a=[],a.length=sum,a.fill(space,0,sum).join(``)},
-                  title=`${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${20}${enter}`;
+                  title=`${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${trList.length}${enter}`;
             let count=0,
                 text=`\u200E ${howMuchSpace(3)}章节${howMuchSpace(6)}需求${howMuchSpace(6)}效率${howMuchSpace(6)}适用${howMuchSpace(6)}推荐${howMuchSpace(6)}最大${enter}`;
             for(let t of trList ){
-                if(count>=20){break;}
                 text+=howMuchSpace(5)
                 for(let b=1;b<13;b+=2 ){
                     let lent=t.childNodes[b].innerText.length
