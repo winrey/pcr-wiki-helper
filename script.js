@@ -204,16 +204,6 @@ a.singleSelect.ready{
 }
 `)
 
-        const  saveTeamData = async() => {
-            // 点击“存储队伍”按钮
-            document.querySelector('.sticky-top button:nth-child(6)').click();
-            let d=document.querySelector('a[href="##"]')
-            d&&d.click()
-            await sleep(2000);
-            document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',true)
-            document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',true)
-        }
-
         function autoSwitch2MapList() {
             $(".title-fixed-wrap .armory-function").children()[2].click();
         }
@@ -684,33 +674,30 @@ a.singleSelect.ready{
             $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(changeItemCount)
             table.querySelectorAll('input[item-name]').forEach(inputDom=>{
                 const itemName = inputDom.getAttribute('item-name');
-                inputDom.addEventListener('keyup',async (e) => {
-                    if(e.keyCode===13){
-                        const newNum = +e.srcElement.value;
-                        // 通过图书馆的快速修改功能来进行库存的修改
-                        const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
-                            .closest('div').querySelector('input');
-                        inputDom.value = newNum;
-                        inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
+                $(inputDom).change(e => {
+                    const newNum = $(e.target).val()
+                    const equipmentId = $(e.target).closest('.helper-cell')
+                        .find('.helper--calc-result-cell').data('itemId')
+                    let il = JSON.parse(localStorage.getItem('itemList'))
+                    il.find(i => i.equipment_id == Number(equipmentId)).count = Number(newNum)
+                    localStorage.setItem('itemList', JSON.stringify(il))
 
+                    // 在修改库存后，修改结果页的库存显示
+                    table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                        dom.value = "";
+                        const itemSpanDom = dom.closest('div').querySelector('span.text-center');
+                        const title = itemSpanDom.getAttribute("title");
+                        let totalNeed = itemSpanDom.getAttribute("data-total-need");
+                        itemSpanDom.innerText = newNum < totalNeed ? `进度 ${newNum}/${totalNeed}` : "已满";
+                        itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                        dom.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);;
+                    })
 
-                        // 在修改库存后，修改结果页的库存显示
-                        table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-                            dom.value = "";
-                            const itemSpanDom = dom.closest('div').querySelector('span.text-center');
-                            const title = itemSpanDom.getAttribute("title");
-                            let totalNeed = itemSpanDom.getAttribute("data-total-need");
-                            itemSpanDom.innerText = newNum < totalNeed ? `进度 ${newNum}/${totalNeed}` : "已满";
-                            itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-                            dom.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);;
-                        })
-
-                        // 在输入掉落数时同步所有相同装备下的 input 的 value
-                        table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-                            dom.value = newNum;
-                        })
-                    }
-                });
+                    // 在输入掉落数时同步所有相同装备下的 input 的 value
+                    table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+                        dom.value = newNum;
+                    })
+                })
             });
 
             return table
@@ -749,7 +736,6 @@ a.singleSelect.ready{
 
             autoSwitch2MapList();
             await sleep(300);
-            saveTeamData();
             // 自动调整至旧版数量
             //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
             //if(![...tempDom.classList].includes('active'))
