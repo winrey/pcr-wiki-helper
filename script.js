@@ -475,7 +475,7 @@ a.singleSelect.ready{
                                   ${!item.count&&`style="opacity:0.4"`}
                                   title="${item.information}"
                                   data-total-need=${item.count}
-                             > ${item.count&&`总需`+item.count||`已满`} </span>
+                             > ${item.count && item.information || `已满`} </span>
                             <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                         </div>
                     `).join("")}
@@ -489,7 +489,7 @@ a.singleSelect.ready{
                 try{
                     let p=~~new RegExp("\"equipment_id\":"+item.id +",\"count\":([^,]+),")
                     .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'');
-                    item.information=`有`+p +" 缺"+(item.count)
+                    item.information = `进度 ${p}/${item.count + p}`
                     item.has = p;
                     let c=`${item.count&&(item.count+=p)}`
                 }catch(e){
@@ -700,7 +700,7 @@ a.singleSelect.ready{
                             const itemSpanDom = dom.closest('div').querySelector('span.text-center');
                             const title = itemSpanDom.getAttribute("title");
                             let totalNeed = itemSpanDom.getAttribute("data-total-need");
-                            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
+                            itemSpanDom.innerText = newNum < totalNeed ? `进度 ${newNum}/${totalNeed}` : "已满";
                             itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
                             dom.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);;
                         })
