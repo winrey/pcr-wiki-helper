@@ -706,9 +706,9 @@ a.singleSelect.ready{
         function hideModal() {
             $("#helper--modal").css("opacity", 0);
             $("#helper--modal").css("pointer-events", "none");
-            document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',false)
-            document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',false)
-            document.querySelector('#popBox.modal.fade.show').click()
+            document.querySelector('#popBox.modal.fade.show')?.classList.toggle('helper',false)
+            document.querySelector('div.modal-backdrop.fade.show')?.classList.toggle('helper',false)
+            document.querySelector('#popBox.modal.fade.show')?.click()
         }
 
         function showModal(...content) {
