@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.3.4
+// @version      2.4.5
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -84,18 +84,16 @@
   position: relative;
   top: -0.8em;
 }
+span>.dropsProgress.hide{
+display: none;
+}
 #helper--modal-content:not(.helper--drop) input[item-name] {
     display: none;
 }
 #helper--modal-content input[item-name] {
     width: 6em;
 }
-#helper--popBox, .helper--modal-backdrop {
-    display: none !important;
-}
-#popBox.modal.fade.show.helper, div.modal-backdrop.fade.show.helper {
-    display: none !important;
-}
+
 a.singleSelect{
   display: none
 }
@@ -204,14 +202,15 @@ a.singleSelect.ready{
 }
 `)
 
-        const  saveTeamData = async() => {
+        const  saveTeamData =() => {
             // 点击“存储队伍”按钮
             document.querySelector('.sticky-top button:nth-child(6)').click();
             let d=document.querySelector('a[href="##"]')
             d&&d.click()
-            await sleep(2000);
-            document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',true)
-            document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',true)
+            document.querySelector('body').addEventListener("DOMNodeInserted",async()=>{
+                await sleep(2000);
+                document.querySelector('#popBox.modal.fade.show').click()
+            }, {once:true})
         }
 
         function autoSwitch2MapList() {
@@ -375,13 +374,14 @@ a.singleSelect.ready{
             $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
             const quickModifyBtn = $.parseHTML(`<a href="##" style='margin-left: 1rem;'>快速修改</a>`);
             $(quickModifyBtn[0]).click(e => {
-                document.querySelector('table button:nth-child(1)').click();
+                let modifyState =   document.querySelector('.singleSelect.ready')||true;
+                document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control')||document.querySelector('table button:nth-child(1)').click();
+                [...document.querySelectorAll('span>.dropsProgress')].reduce((t,i)=>i.classList.toggle('hide',modifyState),document.querySelector('span>.dropsProgress'))
                 document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
                 deleteItem(modifyState)
                 modifyState&&document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`,multiItemChange)
                 modifyState&&document.querySelector('span.switch-handler').addEventListener(`click`,(e)=>{
                     multiSelectState(switchMultBtnState("active", !document.querySelector('span.switch-multiSelectBtnState.active')));e.stopImmediatePropagation()})
-                modifyState = !modifyState;
                 return false;
             });
             const reCalcBtn = $.parseHTML(`<a href class=singleSelect style='margin-left: 1rem;'title='修改所有装备后 点击自动保存和计算'>重新计算</a>`);
@@ -453,7 +453,6 @@ a.singleSelect.ready{
                                  ${`data-item-count=${item.count}`}
                                  data-item-id=${item.img.match(/\d{6}/)[0]}
                                  data-item-name=${item.name}
-                                 title='总需:满'
                              >
                             <a
                                 href="${item.url}"
@@ -467,6 +466,7 @@ a.singleSelect.ready{
                                     class="aligncenter"
                                 >
                             <span class="oddTri helper-oddTri">
+
                             <i class="dropOdd text-center helper-block ">
                              ${Math.round(item.odd * 100)}%</i></span>
                             </a>
@@ -476,7 +476,7 @@ a.singleSelect.ready{
                                   title="${item.information}"
                                   data-total-need=${item.count}
                              > ${item.count&&`总需`+item.count||`已满`} </span>
-                            <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
+                            <span><span class= 'dropsProgress ${item.count&&' '||'hide'} '>进度:${item.has || 0}</span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                         </div>
                     `).join("")}
                 </div>
@@ -508,7 +508,7 @@ a.singleSelect.ready{
                 const name=$this[0].dataset.itemName
                 if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
                     itemCountChage(ID,count);
-                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
+                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
                     location.reload();
                 }}
 
@@ -525,7 +525,7 @@ a.singleSelect.ready{
                     for(let dom of [...cell]){
                         itemCountChage(dom.dataset.itemId,dom.dataset.itemCount);
                     }
-                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,9000) })()`)
+                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
                     location.reload();
                 }
 
@@ -600,7 +600,7 @@ a.singleSelect.ready{
                                        document.querySelector('.modal-body button:nth-child(2)').click();
                                        alert(`已导出粘贴板,可复制至word、社交平台`);},{once:true})
         }
-        let modifyState = true;
+        
         const deleteItem=(switchOn)=>{
             switchMultBtnState(`ready`,switchOn)
             for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
@@ -702,7 +702,8 @@ a.singleSelect.ready{
                             let totalNeed = itemSpanDom.getAttribute("data-total-need");
                             itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
                             itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-                            dom.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);;
+                            dom.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                            dom.closest('div').querySelector('span>.dropsProgress').innerText=`进度:${newNum}`;
                         })
 
                         // 在输入掉落数时同步所有相同装备下的 input 的 value
@@ -719,9 +720,6 @@ a.singleSelect.ready{
         function hideModal() {
             $("#helper--modal").css("opacity", 0);
             $("#helper--modal").css("pointer-events", "none");
-            document.querySelector('#popBox.modal.fade.show').classList.toggle('helper',false)
-            document.querySelector('div.modal-backdrop.fade.show').classList.toggle('helper',false)
-            document.querySelector('#popBox.modal.fade.show').click()
         }
 
         function showModal(...content) {
