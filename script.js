@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.4.5
+// @version      2.4.7
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -10,6 +10,7 @@
 // @run-at       document-start
 // @connect      cdn.jsdelivr.net
 // @match        *://pcredivewiki.tw/Armory
+// @match        *://pcredivewiki.tw/Map/*
 // @grant        unsafeWindow
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -200,6 +201,17 @@ a.singleSelect.ready{
     -webkit-transition: color .3s .1s;
     position: relative;
 }
+.form-control.active{
+transition:border linear .2s,box-shadow linear .5s;
+-moz-transition:border linear .2s,-moz-box-shadow linear .5s;
+-webkit-transition:border linear .2s,-webkit-box-shadow linear .5s;
+outline:none;
+border-color: rgba(12, 255, 0, 0.75);
+box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
+-moz-box-shadow:0 0 8px rgba(93,149,242,.5);
+-webkit-box-shadow:0 0 8px rgba(93,149,242,3);
+
+}
 `)
 
         const  saveTeamData =() => {
@@ -337,7 +349,7 @@ a.singleSelect.ready{
         const BOUNS_KEY = "___bouns";
 
         function askBouns() {
-            const bouns = parseInt(prompt("请输入关卡倍数（如n3，n2等，默认为1倍）") || "1") || 1;
+            const bouns =  parseInt(prompt("请输入目前倍数(N3或N2，非活动期可取消)").split('').reverse().join('')|| "1") ||1
             sessionStorage.setItem(BOUNS_KEY, bouns);
             return bouns;
         }
@@ -357,11 +369,11 @@ a.singleSelect.ready{
             const commentLines = [];
             commentLines.push("推荐使用方法：按照列表顺序刷图，数量不要超过「适用」和「推荐」两者的最小值，完成后修改数量，重新根据新情景计算。");
             commentLines.push("");
-            commentLines.push("注意：如果您尚缺好感，请考虑以1,6,11次扫荡为单位刷图，这样可以好感获得最大化。");
+            commentLines.push("注意：如果您尚缺好感，可考虑以30体/次为倍数单位扫荡刷图，能最大化获取发情蛋糕。");
             commentLines.push("");
             commentLines.push("---表头说明---");
-            commentLines.push("『章节』关卡编号。点击可以自动跳转到图书馆原表中关卡所在页数。方便修改数量。关卡后的“独”表示这里存在独有装备。");
-            commentLines.push("『优先』标识。高亮装备是全地图唯一最高效率。请无脑刷满高亮装备图。");
+            commentLines.push("『章节』关卡编号。点击编号可以自动跳转到图书馆原表中关卡详细介绍。点击『章节』能切换排序");
+            commentLines.push("『独』标识。代表当前结果中仅有该图能出的装备碎片。赶进度的话刷满黄色碎片数。");
             commentLines.push("『需求』关卡需求。图中所需装备总数。");
             commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
             commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
@@ -379,6 +391,7 @@ a.singleSelect.ready{
                 modifyState&&document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`,multiItemChange)
                 modifyState&&document.querySelector('span.switch-handler').addEventListener(`click`,(e)=>{
                     multiSelectState(switchMultBtnState("active", !document.querySelector('span.switch-multiSelectBtnState.active')));e.stopImmediatePropagation()})
+                modifyState&&(document.querySelector('.singleSelect.ready').parentElement.scrollLeft = 500);
                 return false;
             });
             const reCalcBtn = $.parseHTML(`<a href class=singleSelect style='margin-left: 1rem;'title='修改所有装备后 点击自动保存和计算'>重新计算</a>`);
@@ -625,6 +638,37 @@ a.singleSelect.ready{
                 c&&!switchOn&&i.classList.toggle("multiSelect-yes",switchOn )
             }
         }
+        const toDetailsTheMap=(m)=>{
+            const genUri=()=>{
+                /* 日后地图更新
+            打开https://pcredivewiki.tw/Map 打开控制台按下Exc 在console中输入
+           ` $$('.btn.btn-info.p-3')
+    .map(el => (el.innerText.replace(/\d+\./,'')+'N'))
+    .reduce((sum, value) => sum + `"${value}",`,'')
+    `
+    不含反引号 输出后模仿格式(注意前后引号!!)复制到下面maps中
+            */
+                console.log(`如果地图更新的话看我,点右边的超链接`)
+                const levelsForMapUir=new Map()
+                const maps=["朱諾平原N","帕拉斯高原N","赫柏丘陵N","維斯塔溪谷N",
+                            "刻瑞斯森林N","佛洛拉湖畔N","墨提斯大瀑布N","伊麗絲樹海N",
+                            "弗麗嘉雪原N","洛麗泰海岸N","蓋奴亞荒漠N","波諾尼亞砂丘N",
+                            "朵羅西亞溼地N","尤金尼亞熱地N","塔利亞火山N","泰美斯銀嶺N",
+                            "菲得斯冰原N","法艾頓草原N","法艾頓草原‧南部N","卡斯塔利亞樹林‧西部N",
+                            "卡斯塔利亞樹林‧東部N","馬提爾德岩峰‧南部N","馬提爾德岩峰‧北部N","雷蒂烏斯群峰‧西麓N",
+                            "雷蒂烏斯群峰‧東麓N","佩特羅大森林‧西部N","佩特羅大森林‧東部N","迪茲塔爾河蝕岸‧北部N",
+                            "迪茲塔爾河蝕岸‧南部N","弗泰拉斷崖‧北部N","弗泰拉斷崖‧南部N","法斯奇亞森林‧南部N",
+                            "ファスキア森林・東部N","デクスティア岩崖・西壁N","デクスティア岩崖・東壁N"]
+                let i=1
+                for(let m of maps){
+                    levelsForMapUir.set(i,`https://pcredivewiki.tw/Map/Detail/${encodeURI(m)}`);i+=1
+                }
+                return levelsForMapUir
+            }
+            const p=parseInt(m.replace(/-\d+/,''))
+            genUri().has(p)&& unsafeWindow.open(genUri().get(p))||alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
+
+        }
         function genTable(mapData) {
             uniqueItem(mapData);
             const bouns = getBouns();//
@@ -643,7 +687,7 @@ a.singleSelect.ready{
                         ${mapData.map(m => `
                             <tr data-is-unique-item=${m.IsuniqueItem&&1||0}>
                                 <td>
-                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-page="${m.page}" data-index="${m.index}" title="点击跳转到关卡位置">
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-pag:e="${m.page}" data-index="${m.index}" title="点击跳转到关卡位置">
                                         ${m.name}
                                     </a>
                                 </td>
@@ -666,8 +710,9 @@ a.singleSelect.ready{
                 const $this = $(e.currentTarget);
                 const page = parseInt($this.attr("data-page"));
                 const index = parseInt($this.attr("data-index"));
-                hideModal();
-                toPage(page);
+                //hideModal();
+                toDetailsTheMap($this.text())
+              /*
                 setTimeout(() => {
                     const $table = $(".mapDrop-table:not(.helper)");
                     const elem = $table.find("tr")[index];
@@ -677,12 +722,14 @@ a.singleSelect.ready{
                         inline: "center",
                     })
                 }, 200)
+                */
             })
             $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(changeItemCount)
             table.querySelectorAll('input[item-name]').forEach(inputDom=>{
                 const itemName = inputDom.getAttribute('item-name');
                 inputDom.addEventListener('keyup',async (e) => {
                     if(e.keyCode===13){
+                        e.currentTarget.classList.toggle('active',1)
                         const newNum = +e.srcElement.value;
                         // 通过图书馆的快速修改功能来进行库存的修改
                         const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
@@ -817,6 +864,8 @@ a.singleSelect.ready{
             try{
                 let before = await GM.getValue('mount', 0);
                 before&&eval(before)
+                await sleep(2000)
+                unsafeWindow.location.href.includes("https://pcredivewiki.tw/Map")&&document.querySelector('.float-right.pcbtn.mr-3').click()
             } catch(e){
                 console.log(`错误: `+e)
             }finally {
