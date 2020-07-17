@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.4.8
+// @version      2.4.9
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -21,7 +21,7 @@
 // @grant        GM.info
 // @grant        GM_addStyle
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
-// @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@master/js/solver.js
+// @require      https://cdn.jsdelivr.net/npm/javascript-lp-solver@0.4.24/prod/solver.js
 // ==/UserScript==
 
 (function() {
