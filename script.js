@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.4.7
+// @version      2.4.8
 // @description  辅助计算所需体力，总次数等等
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -9,8 +9,7 @@
 // @homepage     https://github.com/winrey/pcr-wiki-helper
 // @run-at       document-start
 // @connect      cdn.jsdelivr.net
-// @match        *://pcredivewiki.tw/Armory
-// @match        *://pcredivewiki.tw/Map/*
+// @match        *://pcredivewiki.tw/*
 // @grant        unsafeWindow
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -384,7 +383,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             $(quickModifyBtn[0]).click(async e => {
                 let modifyState = !document.querySelector('.singleSelect.ready');
                 [...document.querySelectorAll('span.dropsProgress')].reduce((t,i)=>i.classList.toggle('hide',modifyState),document.querySelector('span.dropsProgress'))
-                document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control')||document.querySelector('table button:nth-child(1)').click();
+                //点击快速修改 如果找不到输入框就没法设置
+                document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control')||document.querySelector('table button:nth-child(2)').click();
                 document.querySelector('#popBox.modal.fade.show')&&document.querySelector('#popBox.modal.fade.show').click();
                 document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
                 deleteItem(modifyState)
@@ -666,7 +666,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                 return levelsForMapUir
             }
             const p=parseInt(m.replace(/-\d+/,''))
-            genUri().has(p)&& unsafeWindow.open(genUri().get(p))||alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
+            const d=genUri()
+           d.has(p) && !unsafeWindow.open(d.get(p))||alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
 
         }
         function genTable(mapData) {
