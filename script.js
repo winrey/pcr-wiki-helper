@@ -2,9 +2,8 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      2.5.1
-// @description  辅助计算所需体力，总次数等等,本次更新修复图书馆界面修改造成的bug
-
+// @version      2.6.1
+// @description  辅助计算所需体力，总次数等等,
 // @author       winrey,colin,hymbz
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
@@ -735,38 +734,60 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                 */
             })
             $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(changeItemCount)
-            table.querySelectorAll('input[item-name]').forEach(inputDom=>{
-                const itemName = inputDom.getAttribute('item-name');
-                inputDom.addEventListener('keyup',async (e) => {
-                    if(e.keyCode===13){
-                        e.currentTarget.classList.toggle('active',1)
-                        const newNum = +e.srcElement.value;
-                        // 通过图书馆的快速修改功能来进行库存的修改
-                        const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
-                            .closest('div').querySelector('input');
-                        inputDom.value = newNum;
-                        inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
-
-
-                        // 在修改库存后，修改结果页的库存显示
-                       // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-
-                       // })
-
-                        // 在输入掉落数时同步所有相同装备下的 input 的 value
-                        const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)]
-                        c.reduce((t,i) => {
-                            i.value = newNum;
-                            const itemSpanDom = i.closest('div').querySelector('span.text-center');
-                            const title = itemSpanDom.getAttribute("title");
-                            let totalNeed = itemSpanDom.getAttribute("data-total-need");
-                            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
-                            itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-                            i.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-                            i.closest('div').querySelector('span.dropsProgress').innerText=`进度:${newNum}`;
-                        },c[0])
+            const Debounce = function (fn, delay = 500, immediate = false) {
+                typeof delay==='boolean'&&(immediate=delay)
+                let timer = null // 闭包存储setTimeout状态
+                return function () {
+                    let self = this // 事件源this
+                    let args = arguments // 接收事件源的event
+                    if (timer) clearTimeout(timer) // 存在就清除执行fn的定时器
+                    if (immediate) { // 立即执行
+                        let callNow = !timer // 执行fn的状态
+                        timer = setTimeout(function () {
+                            timer = null
+                        }, delay)
+                        if (callNow) fn.call(self, ...args)
+                    } else { // 非立即执行
+                        timer = setTimeout(function () { // 或者使用箭头函数将this指向dom
+                            fn.call(self, ...args)
+                        }, delay)
                     }
-                });
+                }
+            }
+            const inputEntry=async e => {
+                const itemName= e.target.getAttribute('item-name')
+                const newNum = +e.srcElement.value;
+                // 通过图书馆的快速修改功能来进行库存的修改
+                const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
+                .closest('div').querySelector('input');
+                if(inputDom.value === newNum) return
+                e.target.classList.toggle('active',1)
+                inputDom.value = newNum
+                inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
+
+
+                // 在修改库存后，修改结果页的库存显示
+                // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+
+                // })
+
+                // 在输入掉落数时同步所有相同装备下的 input 的 value
+                const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)]
+                c.reduce((t,i) => {
+                    i.value = newNum;
+                    const itemSpanDom = i.closest('div').querySelector('span.text-center');
+                    const title = itemSpanDom.getAttribute("title");
+                    let totalNeed = itemSpanDom.getAttribute("data-total-need");
+                    itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
+                    itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                    i.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+                    i.closest('div').querySelector('span.dropsProgress').innerText=`进度:${newNum}`;
+                },c[0])
+            }
+            const fnChanged=Debounce(Debounce(inputEntry,150),150)
+            table.querySelectorAll('input[item-name]').forEach(inputDom=>{
+                inputDom.addEventListener('input',fnChanged);
+                inputDom.addEventListener('keyup',fnChanged);
             });
 
             return table
