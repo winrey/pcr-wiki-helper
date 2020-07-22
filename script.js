@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.4.9
-// @description  辅助计算所需体力，总次数等等
+
+// @version      2.5.1
+// @description  辅助计算所需体力，总次数等等,本次更新修复图书馆界面修改造成的bug
+
 // @author       winrey,colin,hymbz
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
@@ -21,7 +23,7 @@
 // @grant        GM.info
 // @grant        GM_addStyle
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
-// @require      https://cdn.jsdelivr.net/npm/javascript-lp-solver@0.4.24/prod/solver.js
+// @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@eea66a67d2a0f3794d905fd6447b66329dc34d2e/js/solver.js
 // ==/UserScript==
 
 (function() {
@@ -249,7 +251,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                     const img = $($item.find("img")[0]).attr("src");
                     const requireItemID=img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
                     const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
-                    let count=parseInt($($item.find(".py-1")[0]).text());
+                    const count=parseInt( !/無需|溢/.test($($item.find(".py-1")[0]).text())&&$($item.find(".py-1")[0]).text()||0);
                     const id = /\d+/.exec(img)[0];
                     return { url, name, img, odd, count, id };
                     }
@@ -277,11 +279,18 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             do {
                 await sleep(20);
                 $table = $(".mapDrop-table:not(.helper)");
-                const pageData = $table.find("tr")
-                  .toArray()
-                  .map($)
-                  .slice(0,-1)  // 最后一行是分页栏
-                  .map((m, i) => rowParser(m, page, i));
+                //判断简易计算
+                let start= $table.find("thead>tr").length,pageData=$table.find("tr")
+                pageData =  pageData
+                    .toArray()
+                    .map($)
+                if(start===1){
+                    pageData = pageData.slice(start,-1)  // 最后一行是分页栏
+                }else{
+                    pageData = pageData
+                        .filter(function (i,v){return v!==this&&v>=2&&v%2===0||false}.bind(pageData.length-1)) //结果过滤偶数
+                }
+                pageData= pageData.map((m, i) => rowParser(m, page, i));
                 data.push.apply(data, pageData);
                 page += 1;
             } while(next($table))
@@ -384,7 +393,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                 let modifyState = !document.querySelector('.singleSelect.ready');
                 [...document.querySelectorAll('span.dropsProgress')].reduce((t,i)=>i.classList.toggle('hide',modifyState),document.querySelector('span.dropsProgress'))
                 //点击快速修改 如果找不到输入框就没法设置
-                document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control')||document.querySelector('table button:nth-child(2)').click();
+                document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control')||document.querySelector('table button:nth-child(3)').click();
                 document.querySelector('#popBox.modal.fade.show')&&document.querySelector('#popBox.modal.fade.show').click();
                 document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
                 deleteItem(modifyState)
