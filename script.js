@@ -2,8 +2,8 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      2.6.1
-// @description  辅助计算所需体力，总次数等等,
+// @version      2.6.2
+// @description  辅助计算所需体力，总次数等等,修改版本号,其余的不变
 // @author       winrey,colin,hymbz
 // @license      MIT
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
@@ -88,11 +88,11 @@
 span.dropsProgress.hide{
 display: none;
 }
-#helper--modal-content:not(.helper--drop) input[item-name] {
+#helper--modal-content:not(.helper--drop) input[item-name], #helper--modal-content:not(.helper--drop) input[orig-item-name] {
     display: none;
 }
-#helper--modal-content input[item-name] {
-    width: 6em;
+#helper--modal-content input[item-name], #helper--modal-content input[orig-item-name]{
+    width: 6em;    
 }
 
 a.singleSelect{
@@ -494,7 +494,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                                   title="${item.information}"
                                   data-total-need=${item.count}
                              > ${item.count&&`总需`+item.count||`已满`} </span>
-                            <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span><span class= 'dropsProgress ${item.count&&' '||'hide'} '>进度:${item.has || 0}</span>
+                            <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
+                            <span><input type="number" class="form-control" orig-item-name="${item.name}" placeholder="增量" title="输入掉落数量，回车确认并跳转下个物品"></span>
+                            <span class= 'dropsProgress ${item.count&&' '||'hide'} '>进度:${item.has || 0}</span>
                         </div>
                     `).join("")}
                 </div>
@@ -788,6 +790,29 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             table.querySelectorAll('input[item-name]').forEach(inputDom=>{
                 inputDom.addEventListener('input',fnChanged);
                 inputDom.addEventListener('keyup',fnChanged);
+            });
+
+            const deltaInputEntry=async e => {
+                // 只有回车触发更改
+                if (e.keyCode != 13) {return}
+
+                // 修改上方总数量并触发修改事件 -> delegate to inputEntry()
+                const itemName= e.target.getAttribute('orig-item-name')
+                const delta = +e.srcElement.value;
+                const origInputDom = e.target.closest("div").querySelector('input[item-name]');
+                origInputDom.value = +origInputDom.value + delta;
+                origInputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
+                e.target.value = "";
+
+                // 如有下个物品，跳转焦点
+                const nextItemDiv = e.target.closest("div").nextElementSibling;
+                if (nextItemDiv) {
+                    nextItemDiv.querySelector('input[orig-item-name]').focus();
+                }
+            }
+            table.querySelectorAll('input[orig-item-name]').forEach(inputDom=>{
+                inputDom.addEventListener('input',deltaInputEntry);
+                inputDom.addEventListener('keyup',deltaInputEntry);
             });
 
             return table
