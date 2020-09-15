@@ -2,7 +2,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      2.60.3
+// @version      2.60.4
 // @description  辅助计算所需体力，总次数等等,修改版本号,其余的不变
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -216,8 +216,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
 
         const  saveTeamData =() => {
             // 点击“存储队伍”按钮
-	        let storeTeamIndex=7
-            document.querySelector('.sticky-top button:nth-child(storeTeamIndex)').click();
+	          let storeTeamIndex=7
+            document.querySelector(`.sticky-top button:nth-child(${storeTeamIndex})`).click();
             let d=document.querySelector('a[href="##"]')
             d&&d.click()
         }
