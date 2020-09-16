@@ -2,7 +2,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      2.60.5
+// @version      2.60.6
 // @description  辅助计算所需体力，总次数等等,修改版本号,其余的不变
 // @author       winrey,colin,hymbz
 // @license      MIT
