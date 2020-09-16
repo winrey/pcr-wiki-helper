@@ -213,21 +213,24 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
 
 }
 `)
-
+    /**
+        * 点击“存储队伍”按钮
+        */
     const saveTeamData = () => {
-      // 点击“存储队伍”按钮
-      let storeTeamIndex = 7
-      document.querySelector(`.sticky-top button:nth-child(${storeTeamIndex})`).click();
+      findOnePCRelem(`.sticky-top>button.pcbtn.primary`, '儲存隊伍').click();
       let d = document.querySelector('a[href="##"]')
       d && d.click()
     }
-
+    /**
+     * 自动切换到地图掉落模式
+     *
+     */
     function autoSwitch2MapList() {
       const mapBtnindex = '地圖掉落模式'
-      $(`.title-fixed-wrap .armory-function>:contains('${mapBtnindex}')`).click();
+      findOnePCRelem(`.sticky-top>button.pcbtn.primary`, '儲存隊伍').click();
     }
     function selectNumInOnePage(num, event) {
-      const $select = $(`#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select`);
+      const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
       if (num) {
         const changeEvent = new Event('change');
         $select.val(1000)
@@ -394,7 +397,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         let modifyState = !document.querySelector('.singleSelect.ready');
         [...document.querySelectorAll('span.dropsProgress')].reduce((t, i) => i.classList.toggle('hide', modifyState), document.querySelector('span.dropsProgress'))
         //点击快速修改 如果找不到输入框就没法设置
-        document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control') || document.querySelector('table button:nth-child(3)').click();
+        document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control') || findOnePCRelem('table span button', '快速修改').click();
         document.querySelector('#popBox.modal.fade.show') && document.querySelector('#popBox.modal.fade.show').click();
         document.getElementById('helper--modal-content').classList.toggle('helper--drop', modifyState);
         deleteItem(modifyState)
@@ -599,8 +602,27 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       }
     }
     async function txtToClipboard() {
-      const trList = [...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+20)")], space = ' ', enter = '\r\n',
+      const 数据条目 = '20',//(条)
+        trList = [...document.querySelectorAll(`table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+${数据条目})`)],
         howMuchSpace = (sum = 12, a) => { return a = [], a.length = sum, a.fill(space, 0, sum).join(``) },
+        surroundedByaBar = (text, Rows = 6, horizontal = text.length + 8) => {
+          Rows = Rows & 1 && Rows || Rows + 1//only odd
+          let str = enter, blank = (horizontal - text.length) / 2, half = Math.ceil(Rows / 2);
+          for (let i = 1; i <= Rows; i++) {
+            str += '|'
+            for (let k = 0; k < horizontal; k++) {
+              (Rows === i || 1 === i) && (str += '-') || i === half || (str += ' ')
+              //中间行k已到居中文本位置
+              i === half &&
+                (blank <= k && k < blank + text.length - 2 && (k = text.length + blank - 1, str += text) ||
+                  (str += ' '))
+            }
+            str += '|' + enter
+          }
+          str.substr(0, str.length - 2)
+          return str
+        },
+        space = ' ', enter = '\r\n',
         title = `${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${trList.length}${enter}`;
       let count = 0,
         text = `\u200E ${howMuchSpace(3)}章节${howMuchSpace(6)}需求${howMuchSpace(6)}效率${howMuchSpace(6)}适用${howMuchSpace(6)}推荐${howMuchSpace(6)}最大${enter}`;
@@ -614,14 +636,16 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         text += enter
         count += 1
       }
-      document.querySelector('.modal-body button:nth-child(1)').click();
-      await sleep(20)
-      //document.querySelector('.wating').parentElement.classList.toggle('atTop')
+      findOnePCRelem('table span button', '產生網址連結').click();
+      findOnePCRelem('.modal-body button', '產生匯出文字').click()
+      await sleep(40)
+      //设置dom移除监听 负责在生成链接后设置粘贴板
       document.querySelector('.wating').parentElement
         .parentElement.parentElement
         .addEventListener("DOMNodeRemoved",
           () => {
-            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}已在服务器为你缓存7天,将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}删除！请尽快打开链接:${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|${document.querySelector('.modal-body input')._value}${howMuchSpace(42 - document.querySelector('.modal-body input')._value.length)}|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}并点击储存队伍`);
+            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}7天内打开链接,装备、角色数据完整保留,但将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}删除失效！${enter}请尽快打开链接:${surroundedByaBar(document.querySelector('.modal-body input')._value)}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(4)}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(4)}如果链接失效,可复制"[](内!!!)的字符"到文字汇入队伍的输入框[${document.querySelector('.modal-body textarea').innerHTML}]`);
+
             document.querySelector('.modal-body button:nth-child(2)').click();
             alert(`已导出粘贴板,可复制至word、社交平台`);
           }, { once: true })
@@ -898,7 +922,19 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $(btn).click(onClick);
       return btn;
     };
-
+    /**
+ * 返回pcr的按钮element
+ *
+ * @param {String} css 按钮的父级或集合
+ * @param {?String} btnName 按钮的innerText!
+ * @returns:html元素
+ */
+    function findOnePCRelem(css, btnName) {
+      if (!btnName) {
+        return $(css)
+      }
+      return [...document.querySelectorAll(css)].filter(node => node.innerText === btnName).pop();
+    }
     function createBtnGroup() {
       const group = $.parseHTML(`
                 <div id="helper--bottom-btn-group" class="scroll-fixed-bottom"></div>
