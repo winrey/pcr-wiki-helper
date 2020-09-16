@@ -213,20 +213,17 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
 
 }
 `)
-    /**
-        * 点击“存储队伍”按钮
-        */
+
     const saveTeamData = () => {
-      findOnePCRelem(`.sticky-top>button.pcbtn.primary`, '儲存隊伍').click();
+      // 点击“存储队伍”按钮
+      let storeTeamIndex = 7
+      document.querySelector(`.sticky-top button:nth-child(${storeTeamIndex})`).click();
       let d = document.querySelector('a[href="##"]')
       d && d.click()
     }
-    /**
-     * 自动切换到地图掉落模式
-     *
-     */
+
     function autoSwitch2MapList() {
-      findOnePCRelem(`.d-flex.flex-nowrap.mb-3.armory-function>button.pcbtn.mr-3`, '地圖掉落模式').click();
+      $(".title-fixed-wrap .armory-function").children()[2].click();
     }
     function selectNumInOnePage(num, event) {
       const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
