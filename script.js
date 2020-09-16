@@ -222,9 +222,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
      */
     function autoSwitch2MapList() {
       findOnePCRelem(`.d-flex.flex-nowrap.mb-3.armory-function>button.pcbtn.mr-3`, '地圖掉落模式').click();
-      const mapBtnindex = '地圖掉落模式'
-      findOnePCRelem(`.sticky-top>button.pcbtn.primary`, '儲存隊伍').click();
-      findOnePCRelem(`.d-flex.flex-nowrap.mb-3.armory-function>button.pcbtn.mr-3`, '地圖掉落模式').click();
     }
     function selectNumInOnePage(num, event) {
       const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
@@ -615,6 +612,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         text += enter
         count += 1
       }
+
+
       findOnePCRelem('.modal-body button', '產生網址連結').click();
       findOnePCRelem('.modal-body button', '產生匯出文字').click()
       await sleep(40)
@@ -623,7 +622,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         .parentElement.parentElement
         .addEventListener("DOMNodeRemoved",
           () => {
+
             GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}7天内打开链接,装备、角色数据完整保留,但将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}失效！${enter}请尽快打开链接:${surroundedByaBar(document.querySelector('.modal-body input')._value || 'network error,copy Text below')}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(4)}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(4)}如果链接失效,可复制"[](内!!!)的字符"到文字汇入队伍的输入框${enter}[${document.querySelector('.modal-body textarea').innerHTML}]`);
+            alert(`已导出粘贴板,可复制至word、社交平台`);
           }, { once: true })
     }
     const deleteItem = (switchOn) => {
