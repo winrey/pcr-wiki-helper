@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-
 // @version      2.60.6
 // @description  辅助计算所需体力，总次数等等,修改版本号,其余的不变
 // @author       winrey,colin,hymbz
 // @license      MIT
+// @icon         https://pcredivewiki.tw/static/images/unit/icon_unit_108831.png
 // @supportURL   https://github.com/winrey/pcr-wiki-helper/issues
 // @homepage     https://github.com/winrey/pcr-wiki-helper
 // @run-at       document-start
@@ -24,12 +24,9 @@
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@eea66a67d2a0f3794d905fd6447b66329dc34d2e/js/solver.js
 // ==/UserScript==
-
 (function () {
   'use strict';
-
   const sleep = time => new Promise(r => setTimeout(r, time));
-
   $(document).ready(function () {
     GM_addStyle(`
 .helper--calc-result-cell.helper--show-deleted-btn::after {
@@ -94,7 +91,6 @@ display: none;
 #helper--modal-content input[item-name], #helper--modal-content input[orig-item-name]{
     width: 6em;    
 }
-
 a.singleSelect{
   display: none
 }
@@ -210,20 +206,25 @@ border-color: rgba(12, 255, 0, 0.75);
 box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
 -moz-box-shadow:0 0 8px rgba(93,149,242,.5);
 -webkit-box-shadow:0 0 8px rgba(93,149,242,3);
-
 }
 `)
-
+    /**
+        * 点击“存储队伍”按钮
+        */
     const saveTeamData = () => {
-      // 点击“存储队伍”按钮
-      let storeTeamIndex = 7
-      document.querySelector(`.sticky-top button:nth-child(${storeTeamIndex})`).click();
+      findOnePCRelem(`.sticky-top>button.pcbtn.primary`, '儲存隊伍').click();
       let d = document.querySelector('a[href="##"]')
       d && d.click()
     }
-
+    /**
+     * 自动切换到地图掉落模式
+     *
+     */
     function autoSwitch2MapList() {
-      $(".title-fixed-wrap .armory-function").children()[2].click();
+      findOnePCRelem(`.d-flex.flex-nowrap.mb-3.armory-function>button.pcbtn.mr-3`, '地圖掉落模式').click();
+      const mapBtnindex = '地圖掉落模式'
+      findOnePCRelem(`.sticky-top>button.pcbtn.primary`, '儲存隊伍').click();
+      findOnePCRelem(`.d-flex.flex-nowrap.mb-3.armory-function>button.pcbtn.mr-3`, '地圖掉落模式').click();
     }
     function selectNumInOnePage(num, event) {
       const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
@@ -235,14 +236,12 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       else
         return $select.val();
     }
-
     function toPage(num) {
       const $table = $(".mapDrop-table:not(.helper)");
       const $pages = $($table.find("tr").toArray().pop());
       const $frist = $($pages.find("li").toArray()[num || 1]);
       $frist.children()[0].click()
     }
-
     async function getMapData() {
       function rowParser($tr, page, index) {
         function parseItem($item) {
@@ -261,7 +260,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         const items = $(children[2].children()[0]).children().toArray().map(v => parseItem($(v)));
         return { name: name, requirement: requirement, items: items, page: page, index: index };
       }
-
       function next($table) {
         const $pages = $($table.find("tr").toArray().pop());
         const $next = $($pages.find("li").toArray().pop());
@@ -270,7 +268,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         $next.children()[0].click()
         return true;
       }
-
       let $table = $(".mapDrop-table:not(.helper)");
       const data = [];
       toPage(1);
@@ -297,7 +294,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       toPage(1);
       return data;
     }
-
     function getCost(name) {
       if (name === "1-1") return 6
       if (name.startsWith("1-")) return 8;
@@ -308,7 +304,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       if (name.startsWith("6-")) return 9;
       return 10;
     }
-
     function calcResult(data) {
       data = data.map(chan => {
         const sum = (...arr) => [].concat(...arr).reduce((acc, val) => acc + val, 0);
@@ -353,15 +348,12 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           .sort((a, b) => b.effective - a.effective)
       };
     }
-
     const BOUNS_KEY = "___bouns";
-
     function askBouns() {
       const bouns = parseInt(prompt("请输入目前倍数(N3或N2，非活动期可取消)").split('').reverse().join('') || "1") || 1
       sessionStorage.setItem(BOUNS_KEY, bouns);
       return bouns;
     }
-
     function getBouns() {
       let bouns = parseInt(sessionStorage.getItem("___bouns"));
       if (!bouns) {
@@ -369,7 +361,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       }
       return bouns
     }
-
     function showResult(data) {
       const bouns = getBouns();
       const table = genTable(data.map.filter(m => m.times));
@@ -409,7 +400,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $(reCalcBtn[0]).click(() => { handleClickCalcBtn(); return false; });
       showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn, multipleBtn, table);
     }
-
     function createModal(...content) {
       const containerStyle = `
                 top: 0;
@@ -459,11 +449,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $("#helper--modal-mask").click(() => hideModal());
       $("#helper--modal-Clipboard").click(() => txtToClipboard());
     }
-
     function genItemsGroup(items) {
       const old = window.performance.now()
       items = boundLocatStrong(items)// ${item.Unique?`唯一`:``}
-
       const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item => `
@@ -486,7 +474,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                                     class="aligncenter"
                                 >
                             <span class="oddTri helper-oddTri">
-
                             <i class="dropOdd text-center helper-block ">
                              ${Math.round(item.odd * 100)}%</i></span>
                             </a>
@@ -503,7 +490,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                     `).join("")}
                 </div>
             `;
-
       return html;
     }
     function boundLocatStrong(items) {
@@ -534,7 +520,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           location.reload();
         }
       }
-
       const multiItem = () => {
         e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length - 1] == `multiSelect-yes`))
         let cls = document.querySelector('.switch-multiSelectBtnState').classList
@@ -551,10 +536,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         GM.setValue(`mount`, `(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
         location.reload();
       }
-
-
     }
-
     function itemCountChage(equipment_id, count) {
       let p = new RegExp("\"equipment_id\":" + equipment_id + ",\"count\":([^,]+)", 'g')
       let t = new RegExp(`\\d+`, 'g')
@@ -597,6 +579,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         tbody.appendChild(t)
       }
     }
+
     async function txtToClipboard() {
       const 数据条目 = '20',//(条)
         trList = [...document.querySelectorAll(`table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+${数据条目})`)],
@@ -640,13 +623,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         .parentElement.parentElement
         .addEventListener("DOMNodeRemoved",
           () => {
-            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}7天内打开链接,装备、角色数据完整保留,但将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}失效！${enter}请尽快打开链接:${surroundedByaBar(document.querySelector('.modal-body input')._value||'network error,copy Text below')}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(4)}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(4)}如果链接失效,可复制"[](内!!!)的字符"到文字汇入队伍的输入框${enter}[${document.querySelector('.modal-body textarea').innerHTML}]`);
-
-            document.querySelector('.modal-body button:nth-child(2)').click();
-            alert(`已导出粘贴板,可复制至word、社交平台`);
+            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}7天内打开链接,装备、角色数据完整保留,但将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}失效！${enter}请尽快打开链接:${surroundedByaBar(document.querySelector('.modal-body input')._value || 'network error,copy Text below')}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(4)}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(4)}如果链接失效,可复制"[](内!!!)的字符"到文字汇入队伍的输入框${enter}[${document.querySelector('.modal-body textarea').innerHTML}]`);
           }, { once: true })
     }
-
     const deleteItem = (switchOn) => {
       switchMultBtnState(`ready`, switchOn)
       for (let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')) {
@@ -708,7 +687,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       const p = parseInt(m.replace(/-\d+/, ''))
       const d = genUri()
       d.has(p) && !unsafeWindow.open(d.get(p)) || alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
-
     }
     function genTable(mapData) {
       uniqueItem(mapData);
@@ -745,7 +723,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                     </tbody>
                 </table>
             `.trim();
-
       const table = $.parseHTML(html).pop();  // 0是一堆逗号，我也不造这是什么鬼
       $(table).find("a.helper--nav-to-level").click(function (e) {
         const $this = $(e.currentTarget);
@@ -796,13 +773,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         e.target.classList.toggle('active', 1)
         inputDom.value = newNum
         inputDom.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13 }));
-
-
         // 在修改库存后，修改结果页的库存显示
         // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-
         // })
-
         // 在输入掉落数时同步所有相同装备下的 input 的 value
         const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)]
         c.reduce((t, i) => {
@@ -821,11 +794,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         inputDom.addEventListener('input', fnChanged);
         inputDom.addEventListener('keyup', fnChanged);
       });
-
       const deltaInputEntry = async e => {
         // 只有回车触发更改
         if (e.keyCode != 13) { return }
-
         // 修改上方总数量并触发修改事件 -> delegate to inputEntry()
         const itemName = e.target.getAttribute('orig-item-name')
         const delta = +e.srcElement.value;
@@ -833,7 +804,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         origInputDom.value = +origInputDom.value + delta;
         origInputDom.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13 }));
         e.target.value = "";
-
         // 如有下个物品，跳转焦点
         const nextItemDiv = e.target.closest("div").nextElementSibling;
         if (nextItemDiv) {
@@ -844,16 +814,13 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         inputDom.addEventListener('input', deltaInputEntry);
         inputDom.addEventListener('keyup', deltaInputEntry);
       });
-
       return table
     }
-
     function hideModal() {
       document.querySelector('#popBox.modal.fade.show') && document.querySelector('#popBox.modal.fade.show').click();
       $("#helper--modal").css("opacity", 0);
       $("#helper--modal").css("pointer-events", "none");
     }
-
     function showModal(...content) {
       $("#helper--modal").css("opacity", 1);
       $("#helper--modal").css("pointer-events", "");
@@ -870,14 +837,11 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         $("#helper--modal-content").html("");
         for (let i in dom)
           $("#helper--modal-content").append(dom[i]);
-
       }
-
       document.querySelector("table.table.table-bordered.mapDrop-table.helper th").addEventListener(`click`, sortColumn)
     }
 
     async function handleClickCalcBtn() {
-
       autoSwitch2MapList();
       await sleep(300);
       saveTeamData();
@@ -886,7 +850,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       //if(![...tempDom.classList].includes('active'))
       //    tempDom.click();
       //await sleep(100);
-
       document.getElementById('helper--modal-content').classList.remove('helper--drop');
       if (selectNumInOnePage() != "1000") {
         selectNumInOnePage(1000);
@@ -908,7 +871,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         alert("现在还不是地图掉落页面呢～");
       }
     }
-
     function btnFactory(content, colorRotate, onClick) {
       const btn = $.parseHTML(`
                 <div class="armory-function" style="padding: 0; padding-top: 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
@@ -943,7 +905,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $(group).append(bounsBtn);
       $("#app .container").append(group);
     }
-
     function changeBtnGroup() {
       const group = $("#helper--bottom-btn-group");
       group.html("");
