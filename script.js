@@ -25,13 +25,13 @@
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@eea66a67d2a0f3794d905fd6447b66329dc34d2e/js/solver.js
 // ==/UserScript==
 
-(function() {
-    'use strict';
+(function () {
+  'use strict';
 
-    const sleep = time => new Promise(r => setTimeout(r,time));
+  const sleep = time => new Promise(r => setTimeout(r, time));
 
-    $(document).ready(function() {
-        GM_addStyle(`
+  $(document).ready(function () {
+    GM_addStyle(`
 .helper--calc-result-cell.helper--show-deleted-btn::after {
   content: '\u2716';
   position: absolute;
@@ -214,203 +214,204 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
 }
 `)
 
-        const  saveTeamData =() => {
-            // 点击“存储队伍”按钮
-	          let storeTeamIndex=7
-            document.querySelector(`.sticky-top button:nth-child(${storeTeamIndex})`).click();
-            let d=document.querySelector('a[href="##"]')
-            d&&d.click()
+    const saveTeamData = () => {
+      // 点击“存储队伍”按钮
+      let storeTeamIndex = 7
+      document.querySelector(`.sticky-top button:nth-child(${storeTeamIndex})`).click();
+      let d = document.querySelector('a[href="##"]')
+      d && d.click()
+    }
+
+    function autoSwitch2MapList() {
+      $(".title-fixed-wrap .armory-function").children()[2].click();
+    }
+    function selectNumInOnePage(num, event) {
+      const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
+      if (num) {
+        const changeEvent = new Event('change');
+        $select.val(1000)
+        $select[0].dispatchEvent(changeEvent)
+      }
+      else
+        return $select.val();
+    }
+
+    function toPage(num) {
+      const $table = $(".mapDrop-table:not(.helper)");
+      const $pages = $($table.find("tr").toArray().pop());
+      const $frist = $($pages.find("li").toArray()[num || 1]);
+      $frist.children()[0].click()
+    }
+
+    async function getMapData() {
+      function rowParser($tr, page, index) {
+        function parseItem($item) {
+          const url = $($item.find("a")[0]).attr("href");
+          const name = $($item.find("img")[0]).attr("title");
+          const img = $($item.find("img")[0]).attr("src");
+          const requireItemID = img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
+          const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
+          const count = parseInt(!/無需|溢/.test($($item.find(".py-1")[0]).text()) && $($item.find(".py-1")[0]).text() || 0);
+          const id = /\d+/.exec(img)[0];
+          return { url, name, img, odd, count, id };
         }
+        const children = $tr.children().map(function () { return $(this) });
+        const name = children[0].text();
+        const requirement = parseInt(children[1].text());
+        const items = $(children[2].children()[0]).children().toArray().map(v => parseItem($(v)));
+        return { name: name, requirement: requirement, items: items, page: page, index: index };
+      }
 
-        function autoSwitch2MapList() {
-            $(".title-fixed-wrap .armory-function").children()[2].click();
+      function next($table) {
+        const $pages = $($table.find("tr").toArray().pop());
+        const $next = $($pages.find("li").toArray().pop());
+        if ($next.hasClass("disabled"))
+          return false;
+        $next.children()[0].click()
+        return true;
+      }
+
+      let $table = $(".mapDrop-table:not(.helper)");
+      const data = [];
+      toPage(1);
+      let page = 1;
+      await sleep(20);
+      do {
+        await sleep(20);
+        $table = $(".mapDrop-table:not(.helper)");
+        //判断简易计算
+        let start = $table.find("thead>tr").length, pageData = $table.find("tr")
+        pageData = pageData
+          .toArray()
+          .map($)
+        if (start === 1) {
+          pageData = pageData.slice(start, -1)  // 最后一行是分页栏
+        } else {
+          pageData = pageData
+            .filter(function (i, v) { return v !== this && v >= 2 && v % 2 === 0 || false }.bind(pageData.length - 1)) //结果过滤偶数
         }
-        function selectNumInOnePage(num,event) {
-            const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
-            if (num){
-                const changeEvent = new Event('change');
-                $select.val(1000)
-                $select[0].dispatchEvent(changeEvent)
-            }
-            else
-                return $select.val();
-        }
+        pageData = pageData.map((m, i) => rowParser(m, page, i));
+        data.push.apply(data, pageData);
+        page += 1;
+      } while (next($table))
+      toPage(1);
+      return data;
+    }
 
-        function toPage(num) {
-            const $table = $(".mapDrop-table:not(.helper)");
-            const $pages = $($table.find("tr").toArray().pop());
-            const $frist = $($pages.find("li").toArray()[num || 1]);
-            $frist.children()[0].click()
-        }
+    function getCost(name) {
+      if (name === "1-1") return 6
+      if (name.startsWith("1-")) return 8;
+      if (name.startsWith("2-")) return 8;
+      if (name.startsWith("3-")) return 8;
+      if (name.startsWith("4-")) return 9;
+      if (name.startsWith("5-")) return 9;
+      if (name.startsWith("6-")) return 9;
+      return 10;
+    }
 
-        async function getMapData() {
-            function rowParser($tr, page, index) {
-                    function parseItem($item) {
-                    const url = $($item.find("a")[0]).attr("href");
-                    const name = $($item.find("img")[0]).attr("title");
-                    const img = $($item.find("img")[0]).attr("src");
-                    const requireItemID=img.match(/\d{6}/)[0] //pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
-                    const odd = parseInt($($item.find("h6.dropOdd")[0]).text()) / 100; // %不算在parseInt内
-                    const count=parseInt( !/無需|溢/.test($($item.find(".py-1")[0]).text())&&$($item.find(".py-1")[0]).text()||0);
-                    const id = /\d+/.exec(img)[0];
-                    return { url, name, img, odd, count, id };
-                    }
-                const children = $tr.children().map(function(){return $(this)});
-                const name = children[0].text();
-                const requirement = parseInt(children[1].text());
-                const items = $(children[2].children()[0]).children().toArray().map(v => parseItem($(v)));
-                return { name: name, requirement: requirement, items: items, page: page, index: index };
-            }
+    function calcResult(data) {
+      data = data.map(chan => {
+        const sum = (...arr) => [].concat(...arr).reduce((acc, val) => acc + val, 0);
+        chan.exception = sum(chan.items.map(v => v.count * v.odd));
+        chan.max = Math.max.apply(null, chan.items.map(v => v.count / v.odd));
+        chan.min = Math.min.apply(null, chan.items.filter(v => v.count).map(v => v.count / v.odd));
+        chan.effective = sum.apply(null, chan.items.map(v => v.count ? v.odd : 0));
+        return chan;
+      });
+      const model = {
+        "optimize": "cost",
+        "opType": "min",
+        "constraints": (() => {
+          const equis = {};
+          data.forEach(c => c.items.forEach(e => equis[e.name] = { "min": e.count }));
+          return equis;
+        })(),
+        "variables": (() => {
+          const challs = {};
+          data.forEach(c => {
+            const cMap = {};
+            c.items.forEach(item => cMap[item.name] = item.odd);
+            cMap.cost = getCost(c.name);
+            challs[c.name] = cMap;
+          });
+          return challs;
+        })(),
+      };
+      console.log("model", model);
+      const lp_result = solver.Solve(model);
+      console.log(lp_result);
+      for (let k in lp_result) {
+        if (!k.includes("-")) continue;
+        const target = data.find(c => c.name === k);
+        if (target)
+          target.times = lp_result[k] || 0;
+      }
+      return {
+        total: lp_result.result,
+        map: data
+          .sort((a, b) => b.times - a.times)
+          .sort((a, b) => b.effective - a.effective)
+      };
+    }
 
-            function next($table) {
-                const $pages = $($table.find("tr").toArray().pop());
-                const $next = $($pages.find("li").toArray().pop());
-                if ($next.hasClass("disabled"))
-                    return false;
-                $next.children()[0].click()
-                return true;
-            }
+    const BOUNS_KEY = "___bouns";
 
-            let $table = $(".mapDrop-table:not(.helper)");
-            const data = [];
-            toPage(1);
-            let page = 1;
-            await sleep(20);
-            do {
-                await sleep(20);
-                $table = $(".mapDrop-table:not(.helper)");
-                //判断简易计算
-                let start= $table.find("thead>tr").length,pageData=$table.find("tr")
-                pageData =  pageData
-                    .toArray()
-                    .map($)
-                if(start===1){
-                    pageData = pageData.slice(start,-1)  // 最后一行是分页栏
-                }else{
-                    pageData = pageData
-                        .filter(function (i,v){return v!==this&&v>=2&&v%2===0||false}.bind(pageData.length-1)) //结果过滤偶数
-                }
-                pageData= pageData.map((m, i) => rowParser(m, page, i));
-                data.push.apply(data, pageData);
-                page += 1;
-            } while(next($table))
-            toPage(1);
-            return data;
-        }
+    function askBouns() {
+      const bouns = parseInt(prompt("请输入目前倍数(N3或N2，非活动期可取消)").split('').reverse().join('') || "1") || 1
+      sessionStorage.setItem(BOUNS_KEY, bouns);
+      return bouns;
+    }
 
-        function getCost(name) {
-            if (name === "1-1") return 6
-            if (name.startsWith("1-")) return 8;
-            if (name.startsWith("2-")) return 8;
-            if (name.startsWith("3-")) return 8;
-            if (name.startsWith("4-")) return 9;
-            if (name.startsWith("5-")) return 9;
-            if (name.startsWith("6-")) return 9;
-            return 10;
-        }
+    function getBouns() {
+      let bouns = parseInt(sessionStorage.getItem("___bouns"));
+      if (!bouns) {
+        bouns = askBouns();
+      }
+      return bouns
+    }
 
-        function calcResult(data) {
-            data = data.map(chan => {
-                const sum = (...arr) => [].concat(...arr).reduce((acc, val) => acc + val, 0);
-                chan.exception = sum(chan.items.map(v => v.count * v.odd));
-                chan.max = Math.max.apply(null, chan.items.map(v => v.count / v.odd));
-                chan.min = Math.min.apply(null, chan.items.filter(v => v.count).map(v => v.count / v.odd));
-                chan.effective = sum.apply(null, chan.items.map(v => v.count ? v.odd : 0));
-                return chan;
-            });
-            const model = {
-                "optimize": "cost",
-                "opType": "min",
-                "constraints": (() => {
-                    const equis = {};
-                    data.forEach(c => c.items.forEach(e => equis[e.name] = {"min": e.count}));
-                    return equis;
-                })(),
-                "variables": (() => {
-                    const challs = {};
-                    data.forEach(c => {
-                        const cMap = {};
-                        c.items.forEach(item => cMap[item.name] = item.odd);
-                        cMap.cost = getCost(c.name);
-                        challs[c.name] = cMap;
-                    });
-                    return challs;
-                })(),
-            };
-            console.log("model", model);
-            const lp_result = solver.Solve(model);
-            console.log(lp_result);
-            for(let k in lp_result) {
-                if (!k.includes("-")) continue;
-                const target = data.find(c => c.name === k);
-                if (target)
-                    target.times = lp_result[k] || 0;
-            }
-            return {
-                total: lp_result.result,
-                map: data
-                  .sort((a, b) => b.times - a.times)
-                  .sort((a, b) => b.effective - a.effective)
-            };
-        }
+    function showResult(data) {
+      const bouns = getBouns();
+      const table = genTable(data.map.filter(m => m.times));
+      const comment = $.parseHTML('<a href>说明</a>');
+      const commentLines = [];
+      commentLines.push("推荐使用方法：按照列表顺序刷图，数量不要超过「适用」和「推荐」两者的最小值，完成后修改数量，重新根据新情景计算。");
+      commentLines.push("");
+      commentLines.push("注意：如果您尚缺好感，可考虑以30体/次为倍数单位扫荡刷图，能最大化获取发情蛋糕。");
+      commentLines.push("");
+      commentLines.push("---表头说明---");
+      commentLines.push("『章节』关卡编号。点击编号可以自动跳转到图书馆原表中关卡详细介绍。点击『章节』能切换排序");
+      commentLines.push("『独』标识。代表当前结果中仅有该图能出的装备碎片。赶进度的话刷满黄色碎片数。");
+      commentLines.push("『需求』关卡需求。图中所需装备总数。");
+      commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
+      commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
+      commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
+      commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
+      $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation() });
+      const quickModifyBtn = $.parseHTML(`<a href="##" style='margin-left: 1rem;'>快速修改</a>`);
+      $(quickModifyBtn[0]).click(async e => {
+        let modifyState = !document.querySelector('.singleSelect.ready');
+        [...document.querySelectorAll('span.dropsProgress')].reduce((t, i) => i.classList.toggle('hide', modifyState), document.querySelector('span.dropsProgress'))
+        //点击快速修改 如果找不到输入框就没法设置
+        document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control') || document.querySelector('table button:nth-child(3)').click();
+        document.querySelector('#popBox.modal.fade.show') && document.querySelector('#popBox.modal.fade.show').click();
+        document.getElementById('helper--modal-content').classList.toggle('helper--drop', modifyState);
+        deleteItem(modifyState)
+        modifyState && document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`, multiItemChange)
+        modifyState && document.querySelector('span.switch-handler').addEventListener(`click`, (e) => {
+          multiSelectState(switchMultBtnState("active", !document.querySelector('span.switch-multiSelectBtnState.active'))); e.stopImmediatePropagation()
+        })
+        modifyState && (document.querySelector('.singleSelect.ready').parentElement.scrollLeft = 500);
+        return false;
+      });
+      const reCalcBtn = $.parseHTML(`<a href class=singleSelect style='margin-left: 1rem;'title='修改所有装备后 点击自动保存和计算'>重新计算</a>`);
+      const multipleBtn = $.parseHTML(`<span class=switch-multiSelectBtnState></span><span class="switch-handler"></span>`)
+      $(reCalcBtn[0]).click(() => { handleClickCalcBtn(); return false; });
+      showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn, multipleBtn, table);
+    }
 
-        const BOUNS_KEY = "___bouns";
-
-        function askBouns() {
-            const bouns =  parseInt(prompt("请输入目前倍数(N3或N2，非活动期可取消)").split('').reverse().join('')|| "1") ||1
-            sessionStorage.setItem(BOUNS_KEY, bouns);
-            return bouns;
-        }
-
-        function getBouns() {
-            let bouns = parseInt(sessionStorage.getItem("___bouns"));
-            if (!bouns) {
-                bouns = askBouns();
-            }
-            return bouns
-        }
-
-        function showResult(data) {
-            const bouns = getBouns();
-            const table = genTable(data.map.filter(m => m.times));
-            const comment = $.parseHTML('<a href>说明</a>');
-            const commentLines = [];
-            commentLines.push("推荐使用方法：按照列表顺序刷图，数量不要超过「适用」和「推荐」两者的最小值，完成后修改数量，重新根据新情景计算。");
-            commentLines.push("");
-            commentLines.push("注意：如果您尚缺好感，可考虑以30体/次为倍数单位扫荡刷图，能最大化获取发情蛋糕。");
-            commentLines.push("");
-            commentLines.push("---表头说明---");
-            commentLines.push("『章节』关卡编号。点击编号可以自动跳转到图书馆原表中关卡详细介绍。点击『章节』能切换排序");
-            commentLines.push("『独』标识。代表当前结果中仅有该图能出的装备碎片。赶进度的话刷满黄色碎片数。");
-            commentLines.push("『需求』关卡需求。图中所需装备总数。");
-            commentLines.push("『效率』装备效率。图中所有有效装备掉落的概率和。");
-            commentLines.push("『适用』有效次数。预计能保持「效率」不变的次数。");
-            commentLines.push("『推荐』推荐次数。假设概率固定，由考虑体力的线性规划算法计算出的总最优刷图次数。");
-            commentLines.push("『最大』最大次数。最近该图需要的最高次数。");
-            $(comment[0]).click(e => { alert(commentLines.join('\n')); e.preventDefault(); e.stopPropagation()});
-            const quickModifyBtn = $.parseHTML(`<a href="##" style='margin-left: 1rem;'>快速修改</a>`);
-            $(quickModifyBtn[0]).click(async e => {
-                let modifyState = !document.querySelector('.singleSelect.ready');
-                [...document.querySelectorAll('span.dropsProgress')].reduce((t,i)=>i.classList.toggle('hide',modifyState),document.querySelector('span.dropsProgress'))
-                //点击快速修改 如果找不到输入框就没法设置
-                document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control')||document.querySelector('table button:nth-child(3)').click();
-                document.querySelector('#popBox.modal.fade.show')&&document.querySelector('#popBox.modal.fade.show').click();
-                document.getElementById('helper--modal-content').classList.toggle('helper--drop',modifyState);
-                deleteItem(modifyState)
-                modifyState&&document.querySelector('span.switch-multiSelectBtnState').addEventListener(`click`,multiItemChange)
-                modifyState&&document.querySelector('span.switch-handler').addEventListener(`click`,(e)=>{
-                    multiSelectState(switchMultBtnState("active", !document.querySelector('span.switch-multiSelectBtnState.active')));e.stopImmediatePropagation()})
-                modifyState&&(document.querySelector('.singleSelect.ready').parentElement.scrollLeft = 500);
-                return false;
-            });
-            const reCalcBtn = $.parseHTML(`<a href class=singleSelect style='margin-left: 1rem;'title='修改所有装备后 点击自动保存和计算'>重新计算</a>`);
-            const multipleBtn = $.parseHTML( `<span class=switch-multiSelectBtnState></span><span class="switch-handler"></span>`)
-            $(reCalcBtn[0]).click(() => {handleClickCalcBtn(); return false;});
-            showModalByDom(`总体力需求：${Math.round(data.total / bouns)} &nbsp;&nbsp; 当前倍率：${bouns} &nbsp;&nbsp; `, comment, quickModifyBtn, reCalcBtn,multipleBtn, table);
-        }
-
-        function createModal(...content) {
-            const containerStyle = `
+    function createModal(...content) {
+      const containerStyle = `
                 top: 0;
                 left: 0;
                 width: 100%;
@@ -424,7 +425,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                 pointer-events: none;
                 transition: all ease-in-out 0.5s;
             `;
-            const maskStyle = `
+      const maskStyle = `
                 top: 0;
                 left: 0;
                 width: 100%;
@@ -433,17 +434,17 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                 position: absolute;
                 z-index: 11000;
             `;
-            const boxStyle = `
+      const boxStyle = `
                 min-width: 80%;
                 z-index: 12000;
             `;
-            const contentStyle = `
+      const contentStyle = `
                 width: 100%;
                 margin-bottom: 10px;
                 max-height: 80vh;
                 overflow: scroll;
             `
-            const html = `
+      const html = `
                 <div id="helper--modal" style="${containerStyle}">
                     <div id="helper--modal-mask" style="${maskStyle}"></div>
                     <div class="breadcrumb" style="${boxStyle}">
@@ -453,21 +454,21 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                     </div>
                 </div>
             `;
-            $("#app").after(html);
-            $("#helper--modal-close").click(() => hideModal());
-            $("#helper--modal-mask").click(() => hideModal());
-            $("#helper--modal-Clipboard").click(() => txtToClipboard());
-        }
+      $("#app").after(html);
+      $("#helper--modal-close").click(() => hideModal());
+      $("#helper--modal-mask").click(() => hideModal());
+      $("#helper--modal-Clipboard").click(() => txtToClipboard());
+    }
 
-        function genItemsGroup(items) {
-            const old=window.performance.now()
-            items=boundLocatStrong(items)// ${item.Unique?`唯一`:``}
+    function genItemsGroup(items) {
+      const old = window.performance.now()
+      items = boundLocatStrong(items)// ${item.Unique?`唯一`:``}
 
-            const html = `
+      const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
-                    ${items.map(item =>`
-                        <div class="p-2 text-center mapDrop-item mr-2 helper-cell"   style='${item.Unique&&`background-color: rgba(255,193,7,.5); border-radius: 0.7vw;`||``}'>
-                            <div class='helper--calc-result-cell  ${!item.count&&`un--wanted`||''}'
+                    ${items.map(item => `
+                        <div class="p-2 text-center mapDrop-item mr-2 helper-cell"   style='${item.Unique && `background-color: rgba(255,193,7,.5); border-radius: 0.7vw;` || ``}'>
+                            <div class='helper--calc-result-cell  ${!item.count && `un--wanted` || ''}'
                                  onclick
                                  ${`data-item-count=${item.count}`}
                                  data-item-id=${item.img.match(/\d{6}/)[0]}
@@ -480,7 +481,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                             >
                                 <img
                                     width="70"
-                                    title="${item.name+` `}${item.information&&item.information||``}${item.Unique&&` 该图限定`||``}"
+                                    title="${item.name + ` `}${item.information && item.information || ``}${item.Unique && ` 该图限定` || ``}"
                                     src="${item.img}"
                                     class="aligncenter"
                                 >
@@ -491,200 +492,207 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                             </a>
                             </div>
                             <span class="text-center py-1 d-block"
-                                  ${!item.count&&`style="opacity:0.4"`}
+                                  ${!item.count && `style="opacity:0.4"`}
                                   title="${item.information}"
                                   data-total-need=${item.count}
-                             > ${item.count&&`总需`+item.count||`已满`} </span>
+                             > ${item.count && `总需` + item.count || `已满`} </span>
                             <span><input type="number" class="form-control" item-name="${item.name}" value="${item.has || 0}"></span>
                             <span><input type="number" class="form-control" orig-item-name="${item.name}" placeholder="增量" title="输入掉落数量，回车确认并跳转下个物品"></span>
-                            <span class= 'dropsProgress ${item.count&&' '||'hide'} '>进度:${item.has || 0}</span>
+                            <span class= 'dropsProgress ${item.count && ' ' || 'hide'} '>进度:${item.has || 0}</span>
                         </div>
                     `).join("")}
                 </div>
             `;
 
-            return html;
+      return html;
+    }
+    function boundLocatStrong(items) {
+      for (let item of items) {
+        try {
+          let p = ~~new RegExp("\"equipment_id\":" + item.id + ",\"count\":([^,]+),")
+            .exec(localStorage.itemList)[1].replace(/^\"|\"$/g, '');
+          item.information = `有` + p + " 缺" + (item.count)
+          item.has = p;
+          let c = `${item.count && (item.count += p)}`
+        } catch (e) {
+          item.count = 0
         }
-        function boundLocatStrong(items){
-            for(let item of items){
-                try{
-                    let p=~~new RegExp("\"equipment_id\":"+item.id +",\"count\":([^,]+),")
-                    .exec(localStorage.itemList)[1].replace(/^\"|\"$/g,'');
-                    item.information=`有`+p +" 缺"+(item.count)
-                    item.has = p;
-                    let c=`${item.count&&(item.count+=p)}`
-                }catch(e){
-                    item.count=0
-                }
-            }
-            return items
+      }
+      return items
+    }
+    const changeItemCount = (e) => {
+      // 快速完成
+      const singleItem = () => {
+        const $this = $(e.target);
+        const count = $this[0].dataset.itemCount
+        if (!count) return
+        const ID = $this[0].dataset.itemId
+        const name = $this[0].dataset.itemName
+        if (confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
+          itemCountChage(ID, count);
+          GM.setValue(`mount`, `(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
+          location.reload();
         }
-        const changeItemCount=(e)=>{
-                // 快速完成
-            const singleItem=()=>{
-                const $this = $(e.target);
-                const count=$this[0].dataset.itemCount
-                if(!count)return
-                const ID=$this[0].dataset.itemId
-                const name=$this[0].dataset.itemName
-                if(confirm(`${name}的数量达到了${count}。刷新后点击计算`)) {
-                    itemCountChage(ID,count);
-                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
-                    location.reload();
-                }}
+      }
 
-            const multiItem=()=>{
-                e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length-1]==`multiSelect-yes`))
-                let cls=document.querySelector('.switch-multiSelectBtnState').classList
-                cls.toggle(`selected-completedBtn`,document.querySelectorAll('.multiSelect-yes').length!=0)
-            }
-              e.target.classList[e.target.classList.length-1]==`helper--show-deleted-btn`&&!singleItem()||multiItem()
-            }
-        const multiItemChange=(e)=>{
-                let cell=document.querySelectorAll('.multiSelect-yes')
-                if(cell.length&&confirm(`你目前选了${cell.length}个装备,开始修改,点击确定生效`)) {
-                    for(let dom of [...cell]){
-                        itemCountChage(dom.dataset.itemId,dom.dataset.itemCount);
-                    }
-                    GM.setValue(`mount`,`(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
-                    location.reload();
-                }
+      const multiItem = () => {
+        e.target.classList.toggle(`multiSelect-yes`, !(e.target.classList[e.target.classList.length - 1] == `multiSelect-yes`))
+        let cls = document.querySelector('.switch-multiSelectBtnState').classList
+        cls.toggle(`selected-completedBtn`, document.querySelectorAll('.multiSelect-yes').length != 0)
+      }
+      e.target.classList[e.target.classList.length - 1] == `helper--show-deleted-btn` && !singleItem() || multiItem()
+    }
+    const multiItemChange = (e) => {
+      let cell = document.querySelectorAll('.multiSelect-yes')
+      if (cell.length && confirm(`你目前选了${cell.length}个装备,开始修改,点击确定生效`)) {
+        for (let dom of [...cell]) {
+          itemCountChage(dom.dataset.itemId, dom.dataset.itemCount);
+        }
+        GM.setValue(`mount`, `(()=>{ setTimeout(handleClickCalcBtn,2000) })()`)
+        location.reload();
+      }
 
 
-            }
+    }
 
-        function itemCountChage(equipment_id,count){
-             let p=new RegExp("\"equipment_id\":"+equipment_id +",\"count\":([^,]+)",'g')
-             let t= new RegExp(`\\d+`,'g')
-             localStorage.setItem(`itemList`, localStorage.itemList.replace(p,(match,p1)=>{
-                 return match.substr(0,30)+p1.replace(t,count)//match[match.length-1]match.length-3
-             }))
-         };
-        function uniqueItem(mapData){
-            let itmes=[];
-            for(let i=0;i<mapData.length;i++){
-                itmes.push(...mapData[i].items)
-            }
-            for(let t of itmes){
-                itmes[t.name]=itmes[t.name]&&itmes[t.name]+1||1
-            }
-            for(let i=0;i<mapData.length;i++){
-                for(const item of mapData[i].items){
-                    if( item.count>0&&itmes[item.name]<2){
-                        mapData[i].IsuniqueItem=true
-                        item.Unique=true
-                    }
-                }
-            }
+    function itemCountChage(equipment_id, count) {
+      let p = new RegExp("\"equipment_id\":" + equipment_id + ",\"count\":([^,]+)", 'g')
+      let t = new RegExp(`\\d+`, 'g')
+      localStorage.setItem(`itemList`, localStorage.itemList.replace(p, (match, p1) => {
+        return match.substr(0, 30) + p1.replace(t, count)//match[match.length-1]match.length-3
+      }))
+    };
+    function uniqueItem(mapData) {
+      let itmes = [];
+      for (let i = 0; i < mapData.length; i++) {
+        itmes.push(...mapData[i].items)
+      }
+      for (let t of itmes) {
+        itmes[t.name] = itmes[t.name] && itmes[t.name] + 1 || 1
+      }
+      for (let i = 0; i < mapData.length; i++) {
+        for (const item of mapData[i].items) {
+          if (item.count > 0 && itmes[item.name] < 2) {
+            mapData[i].IsuniqueItem = true
+            item.Unique = true
+          }
         }
-        function sortColumn (e){//-1>a,b 1>b,a//greedy
-            let trList=[...e.target.closest('table').querySelectorAll(`tbody>tr`)]
-            const greedy=()=>{
-                trList.sort((a,b)=>{return ~~a.dataset.isUniqueItem&&-1||~~a.dataset.isUniqueItem&&1||0})
-                    .sort((a,b)=>{return ~~a.dataset.isUniqueItem&&~~b.dataset.isUniqueItem&&(~~b.children[2].dataset.dropEffective-~~a.children[2].dataset.dropEffective)||0})
-                return 1
-            }
-            const dropEffective=()=>{
-                trList.sort((a,b)=>{return ~~b.children[2].dataset.dropEffective-~~a.children[2].dataset.dropEffective||0})
-                return 0
-            }
-            e.target.dataset.sortType = !~~e.target.dataset.sortType&&greedy()||dropEffective()//切换状态保存
-            let tbody=e.target.closest('table').querySelector("tbody")
-            tbody.innerHTML=''
-            for(let t of trList){
-                tbody.appendChild(t)
-            }
+      }
+    }
+    function sortColumn(e) {//-1>a,b 1>b,a//greedy
+      let trList = [...e.target.closest('table').querySelectorAll(`tbody>tr`)]
+      const greedy = () => {
+        trList.sort((a, b) => { return ~~a.dataset.isUniqueItem && -1 || ~~a.dataset.isUniqueItem && 1 || 0 })
+          .sort((a, b) => { return ~~a.dataset.isUniqueItem && ~~b.dataset.isUniqueItem && (~~b.children[2].dataset.dropEffective - ~~a.children[2].dataset.dropEffective) || 0 })
+        return 1
+      }
+      const dropEffective = () => {
+        trList.sort((a, b) => { return ~~b.children[2].dataset.dropEffective - ~~a.children[2].dataset.dropEffective || 0 })
+        return 0
+      }
+      e.target.dataset.sortType = !~~e.target.dataset.sortType && greedy() || dropEffective()//切换状态保存
+      let tbody = e.target.closest('table').querySelector("tbody")
+      tbody.innerHTML = ''
+      for (let t of trList) {
+        tbody.appendChild(t)
+      }
+    }
+    async function txtToClipboard() {
+      const trList = [...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+20)")], space = ' ', enter = '\r\n',
+        howMuchSpace = (sum = 12, a) => { return a = [], a.length = sum, a.fill(space, 0, sum).join(``) },
+        title = `${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${trList.length}${enter}`;
+      let count = 0,
+        text = `\u200E ${howMuchSpace(3)}章节${howMuchSpace(6)}需求${howMuchSpace(6)}效率${howMuchSpace(6)}适用${howMuchSpace(6)}推荐${howMuchSpace(6)}最大${enter}`;
+      for (let t of trList) {
+        text += howMuchSpace(5)
+        for (let b = 1; b < 13; b += 2) {
+          let lent = t.childNodes[b].innerText.length
+          text += (t.childNodes[b].innerText + howMuchSpace(10 - lent))
         }
-        async function txtToClipboard(){
-            const trList=[...document.querySelectorAll("table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+20)")],space=' ',enter='\r\n',
-                  howMuchSpace=(sum=12,a)=>{return a=[],a.length=sum,a.fill(space,0,sum).join(``)},
-                  title=`${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${trList.length}${enter}`;
-            let count=0,
-                text=`\u200E ${howMuchSpace(3)}章节${howMuchSpace(6)}需求${howMuchSpace(6)}效率${howMuchSpace(6)}适用${howMuchSpace(6)}推荐${howMuchSpace(6)}最大${enter}`;
-            for(let t of trList ){
-                text+=howMuchSpace(5)
-                for(let b=1;b<13;b+=2 ){
-                    let lent=t.childNodes[b].innerText.length
-                    text+=(t.childNodes[b].innerText+howMuchSpace(10-lent))
-                }
-                text=text.trim()
-                text+=enter
-                count+=1
-            }
-            document.querySelector('.modal-body button:nth-child(1)').click();
-            await sleep(20)
-            //document.querySelector('.wating').parentElement.classList.toggle('atTop')
-            document.querySelector('.wating').parentElement
-                .parentElement.parentElement
-                .addEventListener("DOMNodeRemoved",
-                                  ()=>{GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}已在服务器为你缓存7天,将于${(d=>`${d.getMonth()+1}月${d.getDate()}号`)(new Date(new Date().getTime()+7*86400000))}删除！请尽快打开链接:${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|${document.querySelector('.modal-body input')._value}${howMuchSpace(42-document.querySelector('.modal-body input')._value.length)}|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}并点击储存队伍`);
-                                       document.querySelector('.modal-body button:nth-child(2)').click();
-                                       alert(`已导出粘贴板,可复制至word、社交平台`);},{once:true})
-        }
+        text = text.trim()
+        text += enter
+        count += 1
+      }
+      document.querySelector('.modal-body button:nth-child(1)').click();
+      await sleep(20)
+      //document.querySelector('.wating').parentElement.classList.toggle('atTop')
+      document.querySelector('.wating').parentElement
+        .parentElement.parentElement
+        .addEventListener("DOMNodeRemoved",
+          () => {
+            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}已在服务器为你缓存7天,将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}删除！请尽快打开链接:${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|${document.querySelector('.modal-body input')._value}${howMuchSpace(42 - document.querySelector('.modal-body input')._value.length)}|${enter}${howMuchSpace(4)}|${howMuchSpace(42)}|${enter}${howMuchSpace(4)}|------------------------------------------|${enter}${howMuchSpace(4)}并点击储存队伍`);
+            document.querySelector('.modal-body button:nth-child(2)').click();
+            alert(`已导出粘贴板,可复制至word、社交平台`);
+          }, { once: true })
+    }
 
-        const deleteItem=(switchOn)=>{
-            switchMultBtnState(`ready`,switchOn)
-            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
-                 ~~i.dataset.itemCount && switchOn && !!$(i).addClass('helper--show-deleted-btn') || $(i).removeClass('helper--show-deleted-btn')
-            }
-           !switchOn&&multiSelectState()
+    const deleteItem = (switchOn) => {
+      switchMultBtnState(`ready`, switchOn)
+      for (let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')) {
+        ~~i.dataset.itemCount && switchOn && !!$(i).addClass('helper--show-deleted-btn') || $(i).removeClass('helper--show-deleted-btn')
+      }
+      !switchOn && multiSelectState()
+    }
+    const switchMultBtnState = (cls, switchOn = false) => {
+      let state = ['ready', 'active', 'selected-completedBtn']
+      !switchOn && cls == state[1] && document.querySelector('a.singleSelect').classList.toggle(state[0], !switchOn)
+      if (!switchOn && cls == state[0] && !state.forEach(i => {
+        document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i, switchOn)
+        document.querySelector('span.switch-handler').classList.toggle(i, switchOn)
+        document.querySelector('a.singleSelect').classList.toggle(i, switchOn)
+      })) return switchOn;
+      if (!switchOn && cls == (state.shift() && state)[0] && !state.forEach(i => {
+        document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i, switchOn)
+        document.querySelector('span.switch-handler').classList.toggle(i, switchOn)
+      })) return switchOn;
+      document.querySelector('span.switch-multiSelectBtnState').classList.toggle(cls, switchOn)
+      document.querySelector('span.switch-handler').classList.toggle(cls, switchOn)
+      switchOn && cls == state[1] ? document.querySelector('a.singleSelect').classList.toggle(state[0], !switchOn) : document.querySelector('a.singleSelect').classList.toggle(state[0], switchOn)
+      return switchOn
+    }
+    const multiSelectState = (switchOn = false) => {
+      for (let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')) {
+        let c = ~~i.dataset.itemCount
+        c && i.classList.toggle("multiSelect-no", switchOn);
+        c && !switchOn && i.classList.toggle("multiSelect-yes", switchOn)
+      }
+    }
+    const toDetailsTheMap = (m) => {
+      const genUri = () => {
+        /* 日后地图更新
+    打开https://pcredivewiki.tw/Map 打开控制台按下Exc 在console中输入
+   ` $$('.btn.btn-info.p-3')
+.map(el => (el.innerText.replace(/\d+\./,'')+'N'))
+.reduce((sum, value) => sum + `"${value}",`,'')
+`
+不含反引号 输出后模仿格式(注意前后引号!!)复制到下面maps中
+    */
+        console.log(`如果地图更新的话看我,点右边的超链接`)
+        const levelsForMapUir = new Map()
+        const maps = ["朱諾平原N", "帕拉斯高原N", "赫柏丘陵N", "維斯塔溪谷N",
+          "刻瑞斯森林N", "佛洛拉湖畔N", "墨提斯大瀑布N", "伊麗絲樹海N",
+          "弗麗嘉雪原N", "洛麗泰海岸N", "蓋奴亞荒漠N", "波諾尼亞砂丘N",
+          "朵羅西亞溼地N", "尤金尼亞熱地N", "塔利亞火山N", "泰美斯銀嶺N",
+          "菲得斯冰原N", "法艾頓草原N", "法艾頓草原‧南部N", "卡斯塔利亞樹林‧西部N",
+          "卡斯塔利亞樹林‧東部N", "馬提爾德岩峰‧南部N", "馬提爾德岩峰‧北部N", "雷蒂烏斯群峰‧西麓N",
+          "雷蒂烏斯群峰‧東麓N", "佩特羅大森林‧西部N", "佩特羅大森林‧東部N", "迪茲塔爾河蝕岸‧北部N",
+          "迪茲塔爾河蝕岸‧南部N", "弗泰拉斷崖‧北部N", "弗泰拉斷崖‧南部N", "法斯奇亞森林‧南部N",
+          "ファスキア森林・東部N", "デクスティア岩崖・西壁N", "デクスティア岩崖・東壁N"]
+        let i = 1
+        for (let m of maps) {
+          levelsForMapUir.set(i, `https://pcredivewiki.tw/Map/Detail/${encodeURI(m)}`); i += 1
         }
-       const switchMultBtnState=(cls,switchOn=false)=>{
-           let state=['ready','active','selected-completedBtn']
-           !switchOn&&cls==state[1]&&document.querySelector('a.singleSelect').classList.toggle(state[0],!switchOn)
-          if(!switchOn&&cls==state[0]&&!state.forEach(i=>{document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i,switchOn)
-                                                          document.querySelector('span.switch-handler').classList.toggle(i,switchOn)
-                                                          document.querySelector('a.singleSelect').classList.toggle(i,switchOn)}))return switchOn;
-           if(!switchOn&&cls==(state.shift()&&state)[0]&&!state.forEach(i=>{document.querySelector('span.switch-multiSelectBtnState').classList.toggle(i,switchOn)
-                                                       document.querySelector('span.switch-handler').classList.toggle(i,switchOn)}))return switchOn;
-           document.querySelector('span.switch-multiSelectBtnState').classList.toggle(cls,switchOn)
-           document.querySelector('span.switch-handler').classList.toggle(cls,switchOn)
-           switchOn&&cls==state[1]?document.querySelector('a.singleSelect').classList.toggle(state[0],!switchOn):document.querySelector('a.singleSelect').classList.toggle(state[0],switchOn)
-           return switchOn
-       }
-        const multiSelectState=(switchOn=false)=>{
-            for(let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')){
-                let c=~~i.dataset.itemCount
-                c&& i.classList.toggle("multiSelect-no",switchOn );
-                c&&!switchOn&&i.classList.toggle("multiSelect-yes",switchOn )
-            }
-        }
-        const toDetailsTheMap=(m)=>{
-            const genUri=()=>{
-                /* 日后地图更新
-            打开https://pcredivewiki.tw/Map 打开控制台按下Exc 在console中输入
-           ` $$('.btn.btn-info.p-3')
-    .map(el => (el.innerText.replace(/\d+\./,'')+'N'))
-    .reduce((sum, value) => sum + `"${value}",`,'')
-    `
-    不含反引号 输出后模仿格式(注意前后引号!!)复制到下面maps中
-            */
-                console.log(`如果地图更新的话看我,点右边的超链接`)
-                const levelsForMapUir=new Map()
-                const maps=["朱諾平原N","帕拉斯高原N","赫柏丘陵N","維斯塔溪谷N",
-                            "刻瑞斯森林N","佛洛拉湖畔N","墨提斯大瀑布N","伊麗絲樹海N",
-                            "弗麗嘉雪原N","洛麗泰海岸N","蓋奴亞荒漠N","波諾尼亞砂丘N",
-                            "朵羅西亞溼地N","尤金尼亞熱地N","塔利亞火山N","泰美斯銀嶺N",
-                            "菲得斯冰原N","法艾頓草原N","法艾頓草原‧南部N","卡斯塔利亞樹林‧西部N",
-                            "卡斯塔利亞樹林‧東部N","馬提爾德岩峰‧南部N","馬提爾德岩峰‧北部N","雷蒂烏斯群峰‧西麓N",
-                            "雷蒂烏斯群峰‧東麓N","佩特羅大森林‧西部N","佩特羅大森林‧東部N","迪茲塔爾河蝕岸‧北部N",
-                            "迪茲塔爾河蝕岸‧南部N","弗泰拉斷崖‧北部N","弗泰拉斷崖‧南部N","法斯奇亞森林‧南部N",
-                            "ファスキア森林・東部N","デクスティア岩崖・西壁N","デクスティア岩崖・東壁N"]
-                let i=1
-                for(let m of maps){
-                    levelsForMapUir.set(i,`https://pcredivewiki.tw/Map/Detail/${encodeURI(m)}`);i+=1
-                }
-                return levelsForMapUir
-            }
-            const p=parseInt(m.replace(/-\d+/,''))
-            const d=genUri()
-           d.has(p) && !unsafeWindow.open(d.get(p))||alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
+        return levelsForMapUir
+      }
+      const p = parseInt(m.replace(/-\d+/, ''))
+      const d = genUri()
+      d.has(p) && !unsafeWindow.open(d.get(p)) || alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
 
-        }
-        function genTable(mapData) {
-            uniqueItem(mapData);
-            const bouns = getBouns();//
-            const html = `
+    }
+    function genTable(mapData) {
+      uniqueItem(mapData);
+      const bouns = getBouns();//
+      const html = `
                 <table width="1000px" class="table table-bordered mapDrop-table helper">
                     <thead>
                         <th style="min-width: 71px; vertical-align: baseline;cursor: pointer;" data-sort-type='0' title='点击可转换成贪心排序'>章节</th>
@@ -697,7 +705,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                     </thead>
                     <tbody>
                         ${mapData.map(m => `
-                            <tr data-is-unique-item=${m.IsuniqueItem&&1||0}>
+                            <tr data-is-unique-item=${m.IsuniqueItem && 1 || 0}>
                                 <td>
                                     <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-pag:e="${m.page}" data-index="${m.index}" title="点击跳转到关卡位置">
                                         ${m.name}
@@ -717,217 +725,217 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                 </table>
             `.trim();
 
-            const table = $.parseHTML(html).pop();  // 0是一堆逗号，我也不造这是什么鬼
-            $(table).find("a.helper--nav-to-level").click(function(e) {
-                const $this = $(e.currentTarget);
-                const page = parseInt($this.attr("data-page"));
-                const index = parseInt($this.attr("data-index"));
-                //hideModal();
-                toDetailsTheMap($this.text())
-              /*
-                setTimeout(() => {
-                    const $table = $(".mapDrop-table:not(.helper)");
-                    const elem = $table.find("tr")[index];
-                    elem.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                        inline: "center",
-                    })
-                }, 200)
-                */
-            })
-            $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(changeItemCount)
-            const Debounce = function (fn, delay = 500, immediate = false) {
-                typeof delay==='boolean'&&(immediate=delay)
-                let timer = null // 闭包存储setTimeout状态
-                return function () {
-                    let self = this // 事件源this
-                    let args = arguments // 接收事件源的event
-                    if (timer) clearTimeout(timer) // 存在就清除执行fn的定时器
-                    if (immediate) { // 立即执行
-                        let callNow = !timer // 执行fn的状态
-                        timer = setTimeout(function () {
-                            timer = null
-                        }, delay)
-                        if (callNow) fn.call(self, ...args)
-                    } else { // 非立即执行
-                        timer = setTimeout(function () { // 或者使用箭头函数将this指向dom
-                            fn.call(self, ...args)
-                        }, delay)
-                    }
-                }
-            }
-            const inputEntry=async e => {
-                const itemName= e.target.getAttribute('item-name')
-                const newNum = +e.srcElement.value;
-                // 通过图书馆的快速修改功能来进行库存的修改
-                const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
-                .closest('div').querySelector('input');
-                if(inputDom.value === newNum) return
-                e.target.classList.toggle('active',1)
-                inputDom.value = newNum
-                inputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
-
-
-                // 在修改库存后，修改结果页的库存显示
-                // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-
-                // })
-
-                // 在输入掉落数时同步所有相同装备下的 input 的 value
-                const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)]
-                c.reduce((t,i) => {
-                    i.value = newNum;
-                    const itemSpanDom = i.closest('div').querySelector('span.text-center');
-                    const title = itemSpanDom.getAttribute("title");
-                    let totalNeed = itemSpanDom.getAttribute("data-total-need");
-                    itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
-                    itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-                    i.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-                    i.closest('div').querySelector('span.dropsProgress').innerText=`进度:${newNum}`;
-                },c[0])
-            }
-            const fnChanged=Debounce(Debounce(inputEntry,150),150)
-            table.querySelectorAll('input[item-name]').forEach(inputDom=>{
-                inputDom.addEventListener('input',fnChanged);
-                inputDom.addEventListener('keyup',fnChanged);
-            });
-
-            const deltaInputEntry=async e => {
-                // 只有回车触发更改
-                if (e.keyCode != 13) {return}
-
-                // 修改上方总数量并触发修改事件 -> delegate to inputEntry()
-                const itemName= e.target.getAttribute('orig-item-name')
-                const delta = +e.srcElement.value;
-                const origInputDom = e.target.closest("div").querySelector('input[item-name]');
-                origInputDom.value = +origInputDom.value + delta;
-                origInputDom.dispatchEvent(new KeyboardEvent("keyup",{key: "Enter",keyCode: 13}));
-                e.target.value = "";
-
-                // 如有下个物品，跳转焦点
-                const nextItemDiv = e.target.closest("div").nextElementSibling;
-                if (nextItemDiv) {
-                    nextItemDiv.querySelector('input[orig-item-name]').focus();
-                }
-            }
-            table.querySelectorAll('input[orig-item-name]').forEach(inputDom=>{
-                inputDom.addEventListener('input',deltaInputEntry);
-                inputDom.addEventListener('keyup',deltaInputEntry);
-            });
-
-            return table
+      const table = $.parseHTML(html).pop();  // 0是一堆逗号，我也不造这是什么鬼
+      $(table).find("a.helper--nav-to-level").click(function (e) {
+        const $this = $(e.currentTarget);
+        const page = parseInt($this.attr("data-page"));
+        const index = parseInt($this.attr("data-index"));
+        //hideModal();
+        toDetailsTheMap($this.text())
+        /*
+          setTimeout(() => {
+              const $table = $(".mapDrop-table:not(.helper)");
+              const elem = $table.find("tr")[index];
+              elem.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                  inline: "center",
+              })
+          }, 200)
+          */
+      })
+      $(table).find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell').click(changeItemCount)
+      const Debounce = function (fn, delay = 500, immediate = false) {
+        typeof delay === 'boolean' && (immediate = delay)
+        let timer = null // 闭包存储setTimeout状态
+        return function () {
+          let self = this // 事件源this
+          let args = arguments // 接收事件源的event
+          if (timer) clearTimeout(timer) // 存在就清除执行fn的定时器
+          if (immediate) { // 立即执行
+            let callNow = !timer // 执行fn的状态
+            timer = setTimeout(function () {
+              timer = null
+            }, delay)
+            if (callNow) fn.call(self, ...args)
+          } else { // 非立即执行
+            timer = setTimeout(function () { // 或者使用箭头函数将this指向dom
+              fn.call(self, ...args)
+            }, delay)
+          }
         }
+      }
+      const inputEntry = async e => {
+        const itemName = e.target.getAttribute('item-name')
+        const newNum = +e.srcElement.value;
+        // 通过图书馆的快速修改功能来进行库存的修改
+        const inputDom = document.querySelector(`#app table img[title="${itemName}"]`)
+          .closest('div').querySelector('input');
+        if (inputDom.value === newNum) return
+        e.target.classList.toggle('active', 1)
+        inputDom.value = newNum
+        inputDom.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13 }));
 
-        function hideModal() {
-            document.querySelector('#popBox.modal.fade.show')&&document.querySelector('#popBox.modal.fade.show').click();
-            $("#helper--modal").css("opacity", 0);
-            $("#helper--modal").css("pointer-events", "none");
+
+        // 在修改库存后，修改结果页的库存显示
+        // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+
+        // })
+
+        // 在输入掉落数时同步所有相同装备下的 input 的 value
+        const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)]
+        c.reduce((t, i) => {
+          i.value = newNum;
+          const itemSpanDom = i.closest('div').querySelector('span.text-center');
+          const title = itemSpanDom.getAttribute("title");
+          let totalNeed = itemSpanDom.getAttribute("data-total-need");
+          itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : "已满";
+          itemSpanDom.setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+          i.closest('div').querySelector('img').setAttribute("title", `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+          i.closest('div').querySelector('span.dropsProgress').innerText = `进度:${newNum}`;
+        }, c[0])
+      }
+      const fnChanged = Debounce(Debounce(inputEntry, 150), 150)
+      table.querySelectorAll('input[item-name]').forEach(inputDom => {
+        inputDom.addEventListener('input', fnChanged);
+        inputDom.addEventListener('keyup', fnChanged);
+      });
+
+      const deltaInputEntry = async e => {
+        // 只有回车触发更改
+        if (e.keyCode != 13) { return }
+
+        // 修改上方总数量并触发修改事件 -> delegate to inputEntry()
+        const itemName = e.target.getAttribute('orig-item-name')
+        const delta = +e.srcElement.value;
+        const origInputDom = e.target.closest("div").querySelector('input[item-name]');
+        origInputDom.value = +origInputDom.value + delta;
+        origInputDom.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13 }));
+        e.target.value = "";
+
+        // 如有下个物品，跳转焦点
+        const nextItemDiv = e.target.closest("div").nextElementSibling;
+        if (nextItemDiv) {
+          nextItemDiv.querySelector('input[orig-item-name]').focus();
         }
+      }
+      table.querySelectorAll('input[orig-item-name]').forEach(inputDom => {
+        inputDom.addEventListener('input', deltaInputEntry);
+        inputDom.addEventListener('keyup', deltaInputEntry);
+      });
 
-        function showModal(...content) {
-            $("#helper--modal").css("opacity", 1);
-            $("#helper--modal").css("pointer-events", "");
-            if (content && content.length) {
-                debugger
-                $("#helper--modal-content").html(content.join(""));
-            }
-        }
+      return table
+    }
 
-       async function showModalByDom(...dom) {
-            $("#helper--modal").css("opacity", 1);
-            $("#helper--modal").css("pointer-events", "");
-            if (dom.length) {
-                $("#helper--modal-content").html("");
-                for(let i in dom)
-                    $("#helper--modal-content").append(dom[i]);
+    function hideModal() {
+      document.querySelector('#popBox.modal.fade.show') && document.querySelector('#popBox.modal.fade.show').click();
+      $("#helper--modal").css("opacity", 0);
+      $("#helper--modal").css("pointer-events", "none");
+    }
 
-            }
+    function showModal(...content) {
+      $("#helper--modal").css("opacity", 1);
+      $("#helper--modal").css("pointer-events", "");
+      if (content && content.length) {
+        debugger
+        $("#helper--modal-content").html(content.join(""));
+      }
+    }
 
-           document.querySelector("table.table.table-bordered.mapDrop-table.helper th").addEventListener(`click`,sortColumn)
-        }
+    async function showModalByDom(...dom) {
+      $("#helper--modal").css("opacity", 1);
+      $("#helper--modal").css("pointer-events", "");
+      if (dom.length) {
+        $("#helper--modal-content").html("");
+        for (let i in dom)
+          $("#helper--modal-content").append(dom[i]);
 
-        async function handleClickCalcBtn() {
+      }
 
-            autoSwitch2MapList();
-            await sleep(300);
-            saveTeamData();
-            // 自动调整至旧版数量
-            //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
-            //if(![...tempDom.classList].includes('active'))
-            //    tempDom.click();
-            //await sleep(100);
+      document.querySelector("table.table.table-bordered.mapDrop-table.helper th").addEventListener(`click`, sortColumn)
+    }
 
-            document.getElementById('helper--modal-content').classList.remove('helper--drop');
-            if (selectNumInOnePage() != "1000") {
-                   selectNumInOnePage(1000);
-            }
-            await sleep(100);
-            const data = await getMapData();
-            console.log("data", data);
-            const result = calcResult(data);
-            console.log("result", result);
-            showResult(result);
-            changeBtnGroup();
-        }
+    async function handleClickCalcBtn() {
 
-        async function handleFastModifyBtn() {
-            const $table = $(".mapDrop-table:not(.helper)");
-            if ($table && $table.find("thead button").length) {
-                $table.find("thead button")[0].click();
-            } else {
-                alert("现在还不是地图掉落页面呢～");
-            }
-        }
+      autoSwitch2MapList();
+      await sleep(300);
+      saveTeamData();
+      // 自动调整至旧版数量
+      //const tempDom = document.querySelector('button[title="設計圖數量為舊版數量"]');
+      //if(![...tempDom.classList].includes('active'))
+      //    tempDom.click();
+      //await sleep(100);
 
-        function btnFactory(content, colorRotate, onClick) {
-            const btn = $.parseHTML(`
+      document.getElementById('helper--modal-content').classList.remove('helper--drop');
+      if (selectNumInOnePage() != "1000") {
+        selectNumInOnePage(1000);
+      }
+      await sleep(100);
+      const data = await getMapData();
+      console.log("data", data);
+      const result = calcResult(data);
+      console.log("result", result);
+      showResult(result);
+      changeBtnGroup();
+    }
+
+    async function handleFastModifyBtn() {
+      const $table = $(".mapDrop-table:not(.helper)");
+      if ($table && $table.find("thead button").length) {
+        $table.find("thead button")[0].click();
+      } else {
+        alert("现在还不是地图掉落页面呢～");
+      }
+    }
+
+    function btnFactory(content, colorRotate, onClick) {
+      const btn = $.parseHTML(`
                 <div class="armory-function" style="padding: 0; padding-top: 1vh; overflow: visible; filter: hue-rotate(${colorRotate}deg);">
                     <button class="pcbtn primary" style="border-radius: 50%;"> ${content} </button>
                 </div>
             `);
-            $(btn).click(onClick);
-            return btn;
-        };
+      $(btn).click(onClick);
+      return btn;
+    };
 
-        function createBtnGroup() {
-            const group = $.parseHTML(`
+    function createBtnGroup() {
+      const group = $.parseHTML(`
                 <div id="helper--bottom-btn-group" class="scroll-fixed-bottom"></div>
             `);
-            const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
-            const bounsBtn = btnFactory("修改<br>倍数", 180, askBouns);
-            const calcBtn = btnFactory("计算<br>结果", 90, handleClickCalcBtn);
-            $(group).append(calcBtn);
-            $(group).append(fastModifyBtn);
-            $(group).append(bounsBtn);
-            $("#app .container").append(group);
-        }
+      const fastModifyBtn = btnFactory("快速<br>修改", 270, handleFastModifyBtn);
+      const bounsBtn = btnFactory("修改<br>倍数", 180, askBouns);
+      const calcBtn = btnFactory("计算<br>结果", 90, handleClickCalcBtn);
+      $(group).append(calcBtn);
+      $(group).append(fastModifyBtn);
+      $(group).append(bounsBtn);
+      $("#app .container").append(group);
+    }
 
-        function changeBtnGroup() {
-          const group = $("#helper--bottom-btn-group");
-          group.html("");
-          const fastModifyBtn = btnFactory("快速<br>修改", 188, handleFastModifyBtn);
-          const bounsBtn = btnFactory("修改<br>倍数", 216, askBouns);
-          const lastResultBtn = btnFactory("上次<br>结果", 144, () => showModal());
-          const calcBtn = btnFactory("重新<br>计算", 72, handleClickCalcBtn);
-          group.append(calcBtn);
-          group.append(bounsBtn);
-          group.append(fastModifyBtn);
-          group.append(lastResultBtn);
-        }
-        createBtnGroup();
-        createModal();
-        (async () => {
-            try{
-                let before = await GM.getValue('mount', 0);
-                before&&eval(before)
-                await sleep(2000)
-                unsafeWindow.location.href.includes("https://pcredivewiki.tw/Map")&&document.querySelector('.float-right.pcbtn.mr-3').click()
-            } catch(e){
-                console.log(`错误: `+e)
-            }finally {
-                await GM.deleteValue('mount');
-            }
-        })();
-    });
+    function changeBtnGroup() {
+      const group = $("#helper--bottom-btn-group");
+      group.html("");
+      const fastModifyBtn = btnFactory("快速<br>修改", 188, handleFastModifyBtn);
+      const bounsBtn = btnFactory("修改<br>倍数", 216, askBouns);
+      const lastResultBtn = btnFactory("上次<br>结果", 144, () => showModal());
+      const calcBtn = btnFactory("重新<br>计算", 72, handleClickCalcBtn);
+      group.append(calcBtn);
+      group.append(bounsBtn);
+      group.append(fastModifyBtn);
+      group.append(lastResultBtn);
+    }
+    createBtnGroup();
+    createModal();
+    (async () => {
+      try {
+        let before = await GM.getValue('mount', 0);
+        before && eval(before)
+        await sleep(2000)
+        unsafeWindow.location.href.includes("https://pcredivewiki.tw/Map") && document.querySelector('.float-right.pcbtn.mr-3').click()
+      } catch (e) {
+        console.log(`错误: ` + e)
+      } finally {
+        await GM.deleteValue('mount');
+      }
+    })();
+  });
 })();
