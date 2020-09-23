@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
-// @version      2.60.6
-// @description  辅助计算所需体力，总次数等等,修改版本号,其余的不变
+
+// @version      2.70.1
+// @description  辅助计算PCR手游的所需体力，总次数
 // @author       winrey,colin,hymbz
 // @license      MIT
 // @icon         https://pcredivewiki.tw/static/images/unit/icon_unit_108831.png
@@ -24,9 +25,12 @@
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@eea66a67d2a0f3794d905fd6447b66329dc34d2e/js/solver.js
 // ==/UserScript==
+
 (function () {
   'use strict';
+
   const sleep = time => new Promise(r => setTimeout(r, time));
+
   $(document).ready(function () {
     GM_addStyle(`
 .helper--calc-result-cell.helper--show-deleted-btn::after {
@@ -345,7 +349,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           .sort((a, b) => b.effective - a.effective)
       };
     }
+
     const BOUNS_KEY = "___bouns";
+
     function askBouns() {
       const bouns = parseInt(prompt("请输入目前倍数(N3或N2，非活动期可取消)").split('').reverse().join('') || "1") || 1
       sessionStorage.setItem(BOUNS_KEY, bouns);
@@ -446,9 +452,11 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $("#helper--modal-mask").click(() => hideModal());
       $("#helper--modal-Clipboard").click(() => txtToClipboard());
     }
+
     function genItemsGroup(items) {
       const old = window.performance.now()
       items = boundLocatStrong(items)// ${item.Unique?`唯一`:``}
+
       const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items.map(item => `
@@ -576,7 +584,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         tbody.appendChild(t)
       }
     }
-
     async function txtToClipboard() {
       const 数据条目 = '20',//(条)
         trList = [...document.querySelectorAll(`table.table.table-bordered.mapDrop-table.helper>tbody tr:nth-child(-n+${数据条目})`)],
@@ -612,8 +619,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         text += enter
         count += 1
       }
-
-
       findOnePCRelem('.modal-body button', '產生網址連結').click();
       findOnePCRelem('.modal-body button', '產生匯出文字').click()
       await sleep(40)
@@ -622,11 +627,13 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         .parentElement.parentElement
         .addEventListener("DOMNodeRemoved",
           () => {
+            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}7天内打开链接,装备、角色数据完整保留,但将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}失效！${enter}请尽快打开链接:${surroundedByaBar(document.querySelector('.modal-body input')._value||'network error,copy Text below')}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(4)}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(4)}如果链接失效,可复制"[](内!!!)的字符"到文字汇入队伍的输入框${enter}[${document.querySelector('.modal-body textarea').innerHTML}]`);
 
-            GM.setClipboard(`${title}${text.trim()}${enter}${enter}${enter}7天内打开链接,装备、角色数据完整保留,但将于${(d => `${d.getMonth() + 1}月${d.getDate()}号`)(new Date(new Date().getTime() + 7 * 86400000))}失效！${enter}请尽快打开链接:${surroundedByaBar(document.querySelector('.modal-body input')._value || 'network error,copy Text below')}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(4)}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(4)}如果链接失效,可复制"[](内!!!)的字符"到文字汇入队伍的输入框${enter}[${document.querySelector('.modal-body textarea').innerHTML}]`);
+            document.querySelector('.modal-body button:nth-child(2)').click();
             alert(`已导出粘贴板,可复制至word、社交平台`);
           }, { once: true })
     }
+
     const deleteItem = (switchOn) => {
       switchMultBtnState(`ready`, switchOn)
       for (let i of $('table .p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')) {
@@ -658,13 +665,14 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         c && !switchOn && i.classList.toggle("multiSelect-yes", switchOn)
       }
     }
-    const toDetailsTheMap = (m) => {
+    const toDetailsTheMap = (map) => {
+      const onlineMap = `https://pcredivewiki.tw/Map`;
       const genUri = () => {
         /* 日后地图更新
     打开https://pcredivewiki.tw/Map 打开控制台按下Exc 在console中输入
    ` $$('.btn.btn-info.p-3')
 .map(el => (el.innerText.replace(/\d+\./,'')+'N'))
-.reduce((sum, value) => sum + `"${value}",`,'')
+.reduce((sum, value) =>{return sum .push(value),sum},[]).join('","')
 `
 不含反引号 输出后模仿格式(注意前后引号!!)复制到下面maps中
     */
@@ -685,9 +693,11 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         }
         return levelsForMapUir
       }
-      const p = parseInt(m.replace(/-\d+/, ''))
+      const mapIndex = map.split('-');
+      const p = mapIndex.shift() >> 0
       const d = genUri()
-      d.has(p) && !unsafeWindow.open(d.get(p)) || alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
+      d.has(p) && GM.setValue(`toMap`, mapIndex.shift() >> 0) && unsafeWindow.open(d.get(p)) || alert(`地图可能更新了，请按下F12 ，再按下Esc，找到‘如果地图更新的话看我,点右边的超链接’字样，按提示修改脚本`)
+
     }
     function genTable(mapData) {
       uniqueItem(mapData);
@@ -707,7 +717,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                         ${mapData.map(m => `
                             <tr data-is-unique-item=${m.IsuniqueItem && 1 || 0}>
                                 <td>
-                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-pag:e="${m.page}" data-index="${m.index}" title="点击跳转到关卡位置">
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-pag:e="${m.page}" data-index="${m.index}" title="查看对手阵容">
                                         ${m.name}
                                     </a>
                                 </td>
@@ -882,12 +892,12 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       return btn;
     };
     /**
- * 返回pcr的按钮element
- *
- * @param {String} css 按钮的父级或集合
- * @param {?String} btnName 按钮的innerText!
- * @returns:html元素
- */
+    * 返回pcr的按钮element
+    *
+    * @param {String} css 按钮的父级或集合
+    * @param {?String} btnName 按钮的innerText!
+    * @returns:html元素
+    */
     function findOnePCRelem(css, btnName) {
       if (!btnName) {
         return $(css)
@@ -918,19 +928,30 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       group.append(fastModifyBtn);
       group.append(lastResultBtn);
     }
+    function appendName(mapName) {
+      document.querySelector('nav.navbar.navbar-expand-md.navbar-dark.fixed-top').style.visibility = "hidden";//隐藏导航条
+      document.querySelector('.float-right.pcbtn.mr-3') && !document.querySelector('.float-right.pcbtn.mr-3').click();//显示魔物
+      const toName = (name, ElementFindByNameDotParent = document.querySelector('#H' + name.mapName).parentElement) => { ElementFindByNameDotParent.scrollIntoView({ block: 'center', }), ElementFindByNameDotParent.style.border = '3px solid #db1f77' };
+      [...document.querySelectorAll('.item-title')].forEach(ele => ele.id = 'H' + ele.outerText.split('-').pop()
+      )//添加id方便toName
+      toName({ mapName: name })
+    }
     createBtnGroup();
     createModal();
     (async () => {
       try {
-        let before = await GM.getValue('mount', 0);
+        let before = await GM.getValue('mount', 0), after = await GM.getValue('toMap', 0);
         before && eval(before)
         await sleep(2000)
-        unsafeWindow.location.href.includes("https://pcredivewiki.tw/Map") && document.querySelector('.float-right.pcbtn.mr-3').click()
+        unsafeWindow.location.href.includes("https://pcredivewiki.tw/Map/Detail") && after && appendName(after);
       } catch (e) {
         console.log(`错误: ` + e)
       } finally {
         await GM.deleteValue('mount');
+        await GM.deleteValue('toMap');
       }
     })();
   });
 })();
+
+
