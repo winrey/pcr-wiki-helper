@@ -934,7 +934,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       const toName = (name, ElementFindByNameDotParent = document.querySelector('#H' + name.mapName).parentElement) => { ElementFindByNameDotParent.scrollIntoView({ block: 'center', }), ElementFindByNameDotParent.style.border = '3px solid #db1f77' };
       [...document.querySelectorAll('.item-title')].forEach(ele => ele.id = 'H' + ele.outerText.split('-').pop()
       )//添加id方便toName
-      toName({ mapName: name })
+      toName({ mapName })
     }
     createBtnGroup();
     createModal();
