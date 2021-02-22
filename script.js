@@ -2,7 +2,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      2.70.1
+// @version      2.8.1
 // @description  辅助计算PCR手游的所需体力，总次数
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -225,7 +225,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
      *
      */
     function autoSwitch2MapList() {
-      findOnePCRelem(`.d-flex.flex-nowrap.mb-3.armory-function>button.pcbtn.mr-3`, '地圖掉落模式').click();
+      findOnePCRelem(`.armory-function.p-1.pb-3>button`, '地圖掉落模式').click();
     }
     function selectNumInOnePage(num, event) {
       const $select = $("#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select");
@@ -278,15 +278,19 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         await sleep(20);
         $table = $(".mapDrop-table:not(.helper)");
         //判断简易计算
-        let start = $table.find("thead>tr").length, pageData = $table.find("tr")
+        let start = $table.find("thead>tr").length, pageData = $table.find("tbody>tr"),dataTd = $table.find("tbody>td")
         pageData = pageData
           .toArray()
           .map($)
         if (start === 1) {
           pageData = pageData.slice(start, -1)  // 最后一行是分页栏
         } else {
-          pageData = pageData
-            .filter(function (i, v) { return v !== this && v >= 2 && v % 2 === 0 || false }.bind(pageData.length - 1)) //结果过滤偶数
+          //pageData = pageData
+           // .filter(function (i, v) { return v !== this && v % 2 === 0 || false }.bind(pageData.length - 1)) //结果过滤偶数 //edit "Comments "by cool_delete
+          let c=pageData.length - 1, paeD=(i,v)=>
+           v !== c && ~~/建議:\s(\d+)/.exec($(dataTd.get(v)).text())[1] //结果过滤0数
+         
+          pageData=pageData.filter(paeD.bind(pageData.length - 1))
         }
         pageData = pageData.map((m, i) => rowParser(m, page, i));
         data.push.apply(data, pageData);
@@ -387,7 +391,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         let modifyState = !document.querySelector('.singleSelect.ready');
         [...document.querySelectorAll('span.dropsProgress')].reduce((t, i) => i.classList.toggle('hide', modifyState), document.querySelector('span.dropsProgress'))
         //点击快速修改 如果找不到输入框就没法设置
-        document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control') || findOnePCRelem('table span button', '快速修改').click();
+        document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control') || findOnePCRelem('table button', '快速修改').click();
         document.querySelector('#popBox.modal.fade.show') && document.querySelector('#popBox.modal.fade.show').click();
         document.getElementById('helper--modal-content').classList.toggle('helper--drop', modifyState);
         deleteItem(modifyState)
