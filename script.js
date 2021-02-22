@@ -282,15 +282,16 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         pageData = pageData
           .toArray()
           .map($)
+        pageData = pageData.slice(0, -1)  // 最后一行是分页栏
         if (start === 1) {
           pageData = pageData.slice(start, -1)  // 最后一行是分页栏
         } else {
           //pageData = pageData
            // .filter(function (i, v) { return v !== this && v % 2 === 0 || false }.bind(pageData.length - 1)) //结果过滤偶数 //edit "Comments "by cool_delete
-          let c=pageData.length - 1, paeD=(i,v)=>
-           v !== c && ~~/建議:\s(\d+)/.exec($(dataTd.get(v)).text())[1] //结果过滤0数
+          let paeD=(i,v)=>
+            ~~/建議:\s(\d+)/.exec($(dataTd.get(v)).text())[1] //结果过滤0数
          
-          pageData=pageData.filter(paeD.bind(pageData.length - 1))
+          pageData=pageData.filter(paeD)
         }
         pageData = pageData.map((m, i) => rowParser(m, page, i));
         data.push.apply(data, pageData);
