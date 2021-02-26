@@ -62,6 +62,9 @@ table.table-bordered.mapDrop-table.helper .result-cell-td{
   text-align: justify;
   text-align-last: justify;
 }
+.topToView{
+  z-index: 96000;
+}
 div.ClpMeue{ 
   visibility: hidden;
   transition: all 0.3s;
@@ -272,6 +275,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       vue.saveTeam();
       let d = document.querySelector('a[href="##"]');
       d && d.click();
+      setTimeout(()=>document.querySelector('#popBox.modal.fade.show') &&
+      document.querySelector('#popBox.modal.fade.show').click(),500)
     };
     /**
      * 自动切换到地图掉落模式
@@ -699,7 +704,10 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
     };
     const multiItemChange = e => {
       let cell = document.querySelectorAll('.multiSelect-yes');
-      if (cell.length && confirm(`你目前选了${cell.length}个装备,开始修改,点击确定刷新页面自动计算`)) {
+      if (
+        cell.length &&
+        confirm(`你目前选了${cell.length}个装备,开始修改,点击确定刷新页面自动计算`)
+      ) {
         for (let dom of [...cell]) {
           itemCountChage(dom.dataset.itemId, dom.dataset.itemCount);
         }
@@ -819,7 +827,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       //设置dom移除监听 负责在生成链接后设置粘贴板
       document.querySelector('.wating').parentElement.parentElement.parentElement.addEventListener(
         'DOMNodeRemoved',
-        () => {
+        async () => {
+          vue.isLoading = false;
+          await sleep(140);
           GM.setClipboard(
             `7天内打开链接,装备、角色数据完整保留,但将于${(d =>
               `${d.getMonth() + 1}月${d.getDate()}号`)(
@@ -832,7 +842,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
               4
             )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`
           );
-          alert('备份成功' + '\n' + '复制完成,请尽快拷贝到其他地方保存');
+          tips('备份成功', '复制完成,请尽快拷贝到其他地方保存');
         },
         { once: true }
       );
@@ -891,7 +901,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         canvas.toBlob(blob => {
           navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
           vue.isLoading = false;
-          alert('图片复制成功' + '\n' + '可直接复制到微信或qq。');
+          tips('图片复制成功', '复制完成,可直接复制到微信或qq。');
         });
       });
     }
@@ -1281,6 +1291,23 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       } catch (error) {
         console.error('ccs路径错误');
       }
+    }
+    function tips(title, text) {
+      vue.copyText('errrcolin')
+      vue.popMsg.title = title;
+      vue.popMsg.content = text;
+      let options = {
+        attributes: true,
+        attributeFilter: ['class'],
+      };
+      $('div#popBox')[0].classList.toggle('topToView',1);
+      let mb = new MutationObserver(function (mutationRecord, observer) {
+        if(mutationRecord[0].target.classList.contains('show'))return
+        observer.disconnect();
+        $('div#popBox')[0].classList.toggle('topToView', 0);
+      });
+      mb.observe($('div#popBox')[0], options);
+      $('div#popBox button').focus();
     }
     function createBtnGroup() {
       const group = $.parseHTML(`
