@@ -284,7 +284,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
      */
     function autoSwitch2MapList() {
       vue = document.querySelector('div.container').__vue__;
-      findOnePCRelem(`.armory-function.p-1.pb-3>button`, '地圖掉落模式').click();
+      //findOnePCRelem(`.armory-function.p-1.pb-3>button`, '地圖掉落模式').click();
+      vue.pageSize=1000
+      vue.changeDisplayMode(3)
     }
     function selectNumInOnePage(num, event) {
       const $select = $(
@@ -821,15 +823,10 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         text += enter;
         count += 1;
       }
-      vue.isLoading = true;
-      backupTream();
-      await sleep(40);
       //设置dom移除监听 负责在生成链接后设置粘贴板
       document.querySelector('.wating').parentElement.parentElement.parentElement.addEventListener(
         'DOMNodeRemoved',
         async () => {
-          vue.isLoading = false;
-          await sleep(140);
           GM.setClipboard(
             `7天内打开链接,装备、角色数据完整保留,但将于${(d =>
               `${d.getMonth() + 1}月${d.getDate()}号`)(
@@ -846,6 +843,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         },
         { once: true }
       );
+      vue.isLoading = true;
+      backupTream();
     }
     function backupTream() {
       let uuid = vue.uuid();
@@ -1246,9 +1245,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       //    tempDom.click();
       //await sleep(100);
       document.getElementById('helper--modal-content').classList.remove('helper--drop');
-      if (selectNumInOnePage() != '1000') {
-        selectNumInOnePage(1000);
-      }
+      // if (selectNumInOnePage() != '1000') {
+      //   selectNumInOnePage(1000);
+      // }
       await sleep(100);
       const data = await getMapData();
       console.log('data', data);
