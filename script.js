@@ -2,7 +2,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      3.0.1
+// @version      3.1.0
 // @description  辅助计算PCR手游的所需体力，总次数
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -64,6 +64,7 @@ table.table-bordered.mapDrop-table.helper .result-cell-td{
 }
 .topToView{
   z-index: 96000;
+  white-space: break-spaces;
 }
 div.ClpMeue{ 
   visibility: hidden;
@@ -275,18 +276,19 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       vue.saveTeam();
       let d = document.querySelector('a[href="##"]');
       d && d.click();
-      setTimeout(()=>document.querySelector('#popBox.modal.fade.show') &&
-      document.querySelector('#popBox.modal.fade.show').click(),500)
     };
     /**
      * 自动切换到地图掉落模式
      *
      */
-    function autoSwitch2MapList() {
+    async function autoSwitch2MapList() {
       vue = document.querySelector('div.container').__vue__;
       //findOnePCRelem(`.armory-function.p-1.pb-3>button`, '地圖掉落模式').click();
-      vue.pageSize=1000
-      vue.changeDisplayMode(3)
+      vue.isLoading = true;
+      await sleep(20);
+      vue.changeDisplayMode(3);
+      vue.pageSize = 1000;
+      await sleep(1000);
     }
     function selectNumInOnePage(num, event) {
       const $select = $(
@@ -474,7 +476,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       );
       commentLines.push('『最大』最大次数。最近该图需要的最高次数。');
       $(comment[0]).click(e => {
-        alert(commentLines.join('\n'));
+        tips('说明', commentLines.join('\n'));
         e.preventDefault();
         e.stopPropagation();
       });
@@ -1175,15 +1177,23 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         e.target.value = '';
         // 如有下个物品，跳转焦点
         const nextItemDiv =
-          !~-[...e.target.closest('div').nextElementSibling.querySelector('div').classList].indexOf(
-            'un--wanted'
-          ) && e.target.closest('div').nextElementSibling;
+          e.target.closest('div').nextElementSibling &&
+          e.target
+            .closest('div')
+            .nextElementSibling.querySelector('div')
+            .classList.contains('un--wanted') &&
+          e.target.closest('div').nextElementSibling;
         if (nextItemDiv) {
           nextItemDiv
             .querySelector('input[orig-item-name]')
             .dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13 }));
         } else {
-          e.target.closest('div').nextElementSibling.querySelector('input[orig-item-name]').focus();
+          (e.target.closest('div').nextElementSibling &&
+            !e.target
+              .closest('div')
+              .nextElementSibling.querySelector('input[orig-item-name]')
+              .focus()) ||
+            e.target.closest('tr').querySelector('input[orig-item-name]').focus();
         }
       };
       table.querySelectorAll('input[orig-item-name]').forEach(inputDom => {
@@ -1197,7 +1207,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       itemCountChage(id, newNum);
       onceItemchange.push({ id: id, count: newNum });
     }
-    function hideModal() {
+    async function hideModal() {
       document.querySelector('#popBox.modal.fade.show') &&
         document.querySelector('#popBox.modal.fade.show').click();
       $('#helper--modal').css('opacity', 0);
@@ -1236,7 +1246,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
     }
 
     async function handleClickCalcBtn() {
-      autoSwitch2MapList();
+      await autoSwitch2MapList();
       await sleep(300);
       saveTeamData();
       // 自动调整至旧版数量
@@ -1254,6 +1264,10 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       const result = calcResult(data);
       console.log('result', result);
       showResult(result);
+      vue.pageSize = 10;
+      vue.isLoading = false;
+      document.querySelector('#popBox.modal.fade.show') &&
+      document.querySelector('#popBox.modal.fade.show').click(),
       changeBtnGroup();
     }
 
@@ -1292,16 +1306,16 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       }
     }
     function tips(title, text) {
-      vue.copyText('errrcolin')
+      vue.copyText('errrcolin');
       vue.popMsg.title = title;
       vue.popMsg.content = text;
       let options = {
         attributes: true,
         attributeFilter: ['class'],
       };
-      $('div#popBox')[0].classList.toggle('topToView',1);
+      $('div#popBox')[0].classList.toggle('topToView', 1);
       let mb = new MutationObserver(function (mutationRecord, observer) {
-        if(mutationRecord[0].target.classList.contains('show'))return
+        if (mutationRecord[0].target.classList.contains('show')) return;
         observer.disconnect();
         $('div#popBox')[0].classList.toggle('topToView', 0);
       });
