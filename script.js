@@ -488,8 +488,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           document.querySelector('span.dropsProgress')
         );
         //点击快速修改 如果找不到输入框就没法设置
-        document.querySelector('#app div.p-2.text-center.mapDrop-item.mr-2 input.form-control') ||
-          findOnePCRelem('table button', '快速修改').click();
+          vue.showFastStock()
         document.querySelector('#popBox.modal.fade.show') &&
           document.querySelector('#popBox.modal.fade.show').click();
         document
