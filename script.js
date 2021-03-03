@@ -22,6 +22,7 @@
 // @grant        GM.deleteValue
 // @grant        GM.info
 // @grant        GM_addStyle
+// @updateURL    https://raw.githubusercontent.com/winrey/pcr-wiki-helper/master/script.js    
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@eea66a67d2a0f3794d905fd6447b66329dc34d2e/js/solver.js
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@21de4a7a288c0cdf5d3cea248eee31301d36c105/js/html2canvas.min.js
