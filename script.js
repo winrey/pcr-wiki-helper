@@ -2,7 +2,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      3.1.0
+// @version      3.1.5
 // @description  辅助计算PCR手游的所需体力，总次数
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -317,7 +317,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           const count = parseInt(
             (!/無需|溢/.test($($item.find('.py-1')[0]).text()) &&
               $($item.find('.py-1')[0]).text()) ||
-              0
+            0
           );
           const id = /\d+/.exec(img)[0];
           return { url, name, img, odd, count, id };
@@ -488,7 +488,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           document.querySelector('span.dropsProgress')
         );
         //点击快速修改 如果找不到输入框就没法设置
-          vue.showFastStock()
+        vue.showFastStock()
         document.querySelector('#popBox.modal.fade.show') &&
           document.querySelector('#popBox.modal.fade.show').click();
         document
@@ -605,14 +605,14 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       const html = `
                 <div class="d-flex flex-nowrap justify-content-center">
                     ${items
-                      .map(
-                        item => `
-                        <div class="p-2 text-center mapDrop-item mr-2 helper-cell ${
-                          item.Unique && 'Unique'
-                        }">
-                            <div class='helper--calc-result-cell  ${
-                              (!item.count && `un--wanted`) || ''
-                            }'
+          .map(
+            item => `
+                        <div class="p-2 text-center mapDrop-item mr-2 helper-cell ${item.Unique && 'Unique' || ''
+
+              }  ${(!item.count && `un--wanted`) || ''
+              }'">
+                            <div class='helper--calc-result-cell  ${(!item.count && `un--wanted`) || ''
+              }'
                                  onclick
                                  ${`data-item-count=${item.count}`}
                                  data-item_id=${item.id}
@@ -626,9 +626,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                             >
                                 <img
                                     width="70"
-                                    title="${item.name + ` `}${
-                          (item.information && item.information) || ``
-                        }${(item.Unique && ` 该图限定`) || ``}"
+                                    title="${item.name + ` `}${(item.information && item.information) || ``
+              }${(item.Unique && ` 该图限定`) || ``}"
                                     src="${item.img}"
                                     class="aligncenter"
                                 >
@@ -642,21 +641,17 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                                   title="${item.information}"
                                   data-total-need=${item.count}
                              > ${(item.count && `总需` + item.count) || `已满`} </span>
-                            <span><input type="number" class="form-control" item-name="${
-                              item.name
-                            }" value="${
-                          item.has || 0
-                        }"title="边框需要变荧光绿才算保存成功" onclick="this.select()"></span>
-                            <span><input type="number" class="form-control" orig-item-name="${
-                              item.name
-                            }" placeholder="增量" title="适用合成单次刷图 可每次输入掉落数量，回车确认并跳转下个物品"></span>
-                            <span class= 'dropsProgress ${(item.count && ' ') || 'hide'} '>进度:${
-                          item.has || 0
-                        }</span>
+                            <span><input type="number" class="form-control" item-name="${item.name
+              }" value="${item.has || 0
+              }"title="边框需要变荧光绿才算保存成功" onclick="this.select()"></span>
+                            <span><input type="number" class="form-control" orig-item-name="${item.name
+              }" placeholder="增量" title="适用合成单次刷图 可每次输入掉落数量，回车确认并跳转下个物品"></span>
+                            <span class= 'dropsProgress ${(item.count && ' ') || 'hide'} '>进度:${item.has || 0
+              }</span>
                         </div>
                     `
-                      )
-                      .join('')}
+          )
+          .join('')}
                 </div>
             `;
       return html;
@@ -831,14 +826,14 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           GM.setClipboard(
             `7天内打开链接,装备、角色数据完整保留,但将于${(d =>
               `${d.getMonth() + 1}月${d.getDate()}号`)(
-              new Date(new Date().getTime() + 7 * 86400000)
-            )}失效！${enter}请尽快打开链接:${surroundedByaBar(
-              vue.exportNotice || 'network error,copy Text below'
-            )}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(
-              4
-            )}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(
-              4
-            )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`
+                new Date(new Date().getTime() + 7 * 86400000)
+              )}失效！${enter}请尽快打开链接:${surroundedByaBar(
+                vue.exportNotice || 'network error,copy Text below'
+              )}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(
+                4
+              )}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(
+                4
+              )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`
           );
           tips('备份成功', '复制完成,请尽快拷贝到其他地方保存');
         },
@@ -1038,21 +1033,19 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                     </thead>
                     <tbody>
                         ${mapData
-                          .map(
-                            m => `
+          .map(
+            m => `
                             <tr data-is-unique-item=${(m.IsuniqueItem && 1) || 0}>
                                 <td class='result-cell-td'>
-                                    <a href="#" class="helper--nav-to-level ${
-                                      m.IsuniqueItem && 'helper--important'
-                                    }" data-pag:e="${m.page}" data-index="${
-                              m.index
-                            }" title="查看对手阵容">
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'
+              }" data-pag:e="${m.page}" data-index="${m.index
+              }" title="查看对手阵容">
                                         ${m.name}
                                     </a>
                                 </td>
                                 <td data-drop-effective=${Math.round(
-                                  m.effective * 100
-                                )} class='result-cell-td'> ${Math.round(m.effective * 100)}% </td>
+                m.effective * 100
+              )} class='result-cell-td'> ${Math.round(m.effective * 100)}% </td>
                                 <td>适用<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;${Math.ceil(m.min / bouns)}<br/>
 推荐<br/>
@@ -1064,8 +1057,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                                 </td>
                             </tr>
                         `
-                          )
-                          .join('')}
+          )
+          .join('')}
                     </tbody>
                 </table>
             `.trim();
@@ -1121,40 +1114,45 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         if (e.type !== 'blur' && e.keyCode != 13) {
           return;
         }
-        const itemName = e.target.getAttribute('item-name'),
-          id = e.target.parentElement.parentElement.children[0].dataset.item_id,
-          newNum = e.srcElement.valueAsNumber;
-        // 通过图书馆的快速修改功能来进行库存的修改
-        // const inputDoms=[...document.querySelectorAll(`#app table img[title="${itemName}"]`)]
-        // const Refresh_the_interface = () => {
-        //   let i=inputDoms.shift().closest('div').querySelector('input')
-        //   i.valueAsNumber = newNum;
-        //   inputDoms.length&&
-        //   window.requestAnimationFrame(Refresh_the_interface)||
-        //   i.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13 }))
-        // };
-        // window.requestAnimationFrame(Refresh_the_interface)
-        //卡顿原因自pcr的vue计算dom挤在一个宏任务了 无法优化
+        if (isWanted(e)) {
+          const itemName = e.target.getAttribute('item-name'),
+            id = e.target.parentElement.parentElement.children[0].dataset.item_id,
+            newNum = e.srcElement.valueAsNumber;
+          // 通过图书馆的快速修改功能来进行库存的修改
+          // const inputDoms=[...document.querySelectorAll(`#app table img[title="${itemName}"]`)]
+          // const Refresh_the_interface = () => {
+          //   let i=inputDoms.shift().closest('div').querySelector('input')
+          //   i.valueAsNumber = newNum;
+          //   inputDoms.length&&
+          //   window.requestAnimationFrame(Refresh_the_interface)||
+          //   i.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13 }))
+          // };
+          // window.requestAnimationFrame(Refresh_the_interface)
+          //卡顿原因自pcr的vue计算dom挤在一个宏任务了 无法优化
 
-        singleFragmentGlobalSave(id, newNum);
-        e.target.classList.toggle('active', 1);
-        // 在修改库存后，修改结果页的库存显示
-        // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
-        // })
-        // 在输入掉落数时同步所有相同装备下的 input 的 value
-        const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)];
-        c.reduce((t, i) => {
-          i.value = newNum;
-          const itemSpanDom = i.closest('div').querySelector('span.text-center');
-          const title = itemSpanDom.getAttribute('title');
-          let totalNeed = itemSpanDom.getAttribute('data-total-need');
-          itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : '已满';
-          itemSpanDom.setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-          i.closest('div')
-            .querySelector('img')
-            .setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
-          i.closest('div').querySelector('span.dropsProgress').innerText = `进度:${newNum}`;
-        }, c[0]);
+          singleFragmentGlobalSave(id, newNum);
+          e.target.classList.toggle('active', 1);
+          // 在修改库存后，修改结果页的库存显示
+          // table.querySelectorAll(`input[item-name=${itemName}]`).forEach(dom => {
+          // })
+          // 在输入掉落数时同步所有相同装备下的 input 的 value
+          const c = [...table.querySelectorAll(`input[item-name=${itemName}]`)];
+          c.reduce((t, i) => {
+            i.value = newNum;
+            const itemSpanDom = i.closest('div').querySelector('span.text-center');
+            const title = itemSpanDom.getAttribute('title');
+            let totalNeed = itemSpanDom.getAttribute('data-total-need');
+            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : '已满';
+            itemSpanDom.setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+            i.closest('div')
+              .querySelector('img')
+              .setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
+            i.closest('div').querySelector('span.dropsProgress').innerText = `进度:${newNum}`;
+          }, c[0]);
+        }
+
+        // 如有下个物品，跳转焦点
+        jump(e);
       };
       const fnChanged = Debounce(Debounce(inputEntry, 300), 300);
       table.querySelectorAll('input[item-name]').forEach(inputDom => {
@@ -1174,14 +1172,22 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         origInputDom.value = +origInputDom.value + delta;
         origInputDom.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13 }));
         e.target.value = '';
-        // 如有下个物品，跳转焦点
-        const nextItemDiv =
-          e.target.closest('div').nextElementSibling &&
+
+
+      };
+      table.querySelectorAll('input[orig-item-name]').forEach(inputDom => {
+        inputDom.addEventListener('input', deltaInputEntry);
+        inputDom.addEventListener('keyup', deltaInputEntry);
+      });
+      const isWanted = (e) => !e.target
+        .closest('div')
+        .classList.contains('un--wanted')
+      const jump = (e) => {
+        const nextItemDiv = e.target.closest('div').nextElementSibling &&
           e.target
             .closest('div')
             .nextElementSibling.querySelector('div')
-            .classList.contains('un--wanted') &&
-          e.target.closest('div').nextElementSibling;
+            .classList.contains('un--wanted') && e.target.closest('div').nextElementSibling
         if (nextItemDiv) {
           nextItemDiv
             .querySelector('input[orig-item-name]')
@@ -1192,13 +1198,10 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
               .closest('div')
               .nextElementSibling.querySelector('input[orig-item-name]')
               .focus()) ||
-            e.target.closest('tr').querySelector('input[orig-item-name]').focus();
+            e.target.closest('tr').querySelector('div').querySelector('div:not(.un--wanted)').querySelector('input[orig-item-name]').focus();
         }
-      };
-      table.querySelectorAll('input[orig-item-name]').forEach(inputDom => {
-        inputDom.addEventListener('input', deltaInputEntry);
-        inputDom.addEventListener('keyup', deltaInputEntry);
-      });
+        return nextItemDiv
+      }
       return table;
     }
     function singleFragmentGlobalSave(id, newNum) {
@@ -1266,8 +1269,8 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       vue.pageSize = 10;
       vue.isLoading = false;
       document.querySelector('#popBox.modal.fade.show') &&
-      document.querySelector('#popBox.modal.fade.show').click(),
-      changeBtnGroup();
+        document.querySelector('#popBox.modal.fade.show').click(),
+        changeBtnGroup();
     }
 
     async function handleFastModifyBtn() {
