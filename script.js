@@ -1175,7 +1175,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
 
 
       };
-      table.querySelectorAll('input[orig-item-name]').forEach(inputDom => {
+                                  table.querySelectorAll('input[orig-item-name]').forEach(inputDom => {
         inputDom.addEventListener('input', deltaInputEntry);
         inputDom.addEventListener('keyup', deltaInputEntry);
       });
