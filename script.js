@@ -1,3 +1,5 @@
+/* eslint-disable require-jsdoc */
+
 // ==UserScript==
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
@@ -33,7 +35,7 @@
   const sleep = (time) => new Promise((r) => setTimeout(r, time));
 
   $(document).ready(function() {
-    GM_addStyle(` 
+    GM_addStyle(`
 .helper--calc-result-cell.helper--show-deleted-btn::after {
   content: '\u2716';
   position: absolute;
@@ -290,16 +292,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       vue.pageSize = 1000;
       await sleep(1000);
     }
-    function selectNumInOnePage(num, event) {
-      const $select = $(
-          '#app > .main > .container > .item-box > .row.mb-3 > div:nth-child(3) > .row > div:nth-child(3) select',
-      );
-      if (num) {
-        const changeEvent = new Event('change');
-        $select.val(1000);
-        $select[0].dispatchEvent(changeEvent);
-      } else return $select.val();
-    }
+    // eslint-disable-next-line require-jsdoc
     function toPage(num) {
       const $table = $('.mapDrop-table:not(.helper)');
       const $pages = $($table.find('tr').toArray().pop());
@@ -312,7 +305,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           const url = $($item.find('a')[0]).attr('href');
           const name = $($item.find('img')[0]).attr('title');
           const img = $($item.find('img')[0]).attr('src');
-          const requireItemID = img.match(/\d{6}/)[0]; // pcredivewiki.tw/static/images/equipment/icon_equipment_115221.png
           const odd = parseInt($($item.find('h6.dropOdd')[0]).text()) / 100; // %不算在parseInt内
           const count = parseInt(
               (!/無需|溢/.test($($item.find('.py-1')[0]).text()) &&
@@ -359,7 +351,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         } else {
           // pageData = pageData
           // .filter(function (i, v) { return v !== this && v % 2 === 0 || false }.bind(pageData.length - 1)) //结果过滤偶数 //edit "Comments "by cool_delete
-          const paeD = (i, v) => ~~/建議:\s(\d+)/.exec($(dataTd.get(v)).text())[1]; // 结果过滤0数
+          const paeD = (_i, v) => ~~/建議:\s(\d+)/.exec($(dataTd.get(v)).text())[1]; // 结果过滤0数
 
           pageData = pageData.filter(paeD);
         }
@@ -481,7 +473,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         e.stopPropagation();
       });
       const quickModifyBtn = $.parseHTML(`<a href="##" style='margin-left: 1rem;'>快速修改</a>`);
-      $(quickModifyBtn[0]).click(async (e) => {
+      $(quickModifyBtn[0]).click(async () => {
         const modifyState = !document.querySelector('.singleSelect.ready');
         [...document.querySelectorAll('span.dropsProgress')].reduce(
             (t, i) => i.classList.toggle('hide', modifyState),
@@ -599,7 +591,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       document.querySelector('div.ClpMeue').classList.toggle('active');
     };
     function genItemsGroup(items) {
-      const old = window.performance.now();
       items = boundLocatStrong(items); // ${item.Unique?`唯一`:``}
 
       const html = `
@@ -664,7 +655,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
               .replace(/^\"|\"$/g, '');
           item.information = `有` + p + ' 缺' + item.count;
           item.has = p;
-          const c = `${item.count && (item.count += p)}`;
         } catch (e) {
           item.count = 0;
         }
@@ -700,7 +690,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         !singleItem()) ||
         multiItem();
     };
-    const multiItemChange = (e) => {
+    const multiItemChange = () => {
       const cell = document.querySelectorAll('.multiSelect-yes');
       if (
         cell.length &&
@@ -745,7 +735,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       const trList = [...e.target.closest('table').querySelectorAll(`tbody>tr`)];
       const greedy = () => {
         trList
-            .sort((a, b) => {
+            .sort((a) => {
               return (~~a.dataset.isUniqueItem && -1) || (~~a.dataset.isUniqueItem && 1) || 0;
             })
             .sort((a, b) => {
@@ -804,8 +794,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       };
       const space = ' ';
       const enter = '\r\n';
-      const title = `${howMuchSpace(17)}pcr简易装备库${howMuchSpace()}数据目:${trList.length}${enter}`;
-      let count = 0;
       let text = `\u200E ${howMuchSpace(3)}章节${howMuchSpace(6)}效率${howMuchSpace(
           6,
       )}各效率${enter}`;
@@ -817,7 +805,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         }
         text = text.trim();
         text += enter;
-        count += 1;
       }
       // 设置dom移除监听 负责在生成链接后设置粘贴板
       document.querySelector('.wating').parentElement.parentElement.parentElement.addEventListener(
@@ -949,7 +936,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       }
     };
     const toDetailsTheMap = (map) => {
-      const onlineMap = `https://pcredivewiki.tw/Map`;
       const genUri = () => {
         /* 日后地图更新
     打开https://pcredivewiki.tw/Map 打开控制台按下Exc 在console中输入
@@ -1069,8 +1055,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           .find('a.helper--nav-to-level')
           .click(function(e) {
             const $this = $(e.currentTarget);
-            const page = parseInt($this.attr('data-page'));
-            const index = parseInt($this.attr('data-index'));
             // hideModal();
             toDetailsTheMap($this.text());
           /*
@@ -1142,7 +1126,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           c.reduce((t, i) => {
             i.value = newNum;
             const itemSpanDom = i.closest('div').querySelector('span.text-center');
-            const title = itemSpanDom.getAttribute('title');
             const totalNeed = itemSpanDom.getAttribute('data-total-need');
             itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : '已满';
             itemSpanDom.setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
@@ -1168,7 +1151,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           return;
         }
         // 修改上方总数量并触发修改事件 -> delegate to inputEntry()
-        const itemName = e.target.getAttribute('orig-item-name');
         const delta = +e.srcElement.value;
         const origInputDom = e.target.closest('div').querySelector('input[item-name]');
         origInputDom.value = +origInputDom.value + delta;
@@ -1289,23 +1271,6 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             `);
       $(btn).click(onClick);
       return btn;
-    }
-    /**
-     * 返回pcr的按钮element
-     *
-     * @param {String} css 按钮的父级或集合
-     * @param {?String} btnName 按钮的innerText!
-     * @return:html元素
-     */
-    function findOnePCRelem(css, btnName) {
-      try {
-        if (!btnName) {
-          return $(css);
-        }
-        return [...document.querySelectorAll(css)].filter((node) => node.innerText === btnName).pop();
-      } catch (error) {
-        console.error('ccs路径错误');
-      }
     }
     function tips(title, text) {
       vue.copyText('errrcolin');
