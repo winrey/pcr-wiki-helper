@@ -27,7 +27,7 @@
 // @require      https://cdn.jsdelivr.net/gh/winrey/pcr-wiki-helper@21de4a7a288c0cdf5d3cea248eee31301d36c105/js/html2canvas.min.js
 // ==/UserScript==
 
-(function () {
+(function() {
   'use strict';
 
   const sleep = time => new Promise(r => setTimeout(r, time));
