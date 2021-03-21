@@ -782,10 +782,10 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             ((Rows === i || 1 === i) && (str += '-')) || i === half || (str += ' ');
             // 中间行k已到居中文本位置
             i === half &&
-                ((blank <= k &&
-                  k < blank + text.length - 2 &&
-                  ((k = text.length + blank - 1), (str += text))) ||
-                  (str += ' '));
+              ((blank <= k &&
+                k < blank + text.length - 2 &&
+                ((k = text.length + blank - 1), (str += text))) ||
+                (str += ' '));
           }
           str += '|' + enter;
         }
@@ -1020,13 +1020,10 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                         <th> 掉落一覽 </th>
                     </thead>
                     <tbody>
-                        ${mapData
-      .map(
-          (m) => `
+                        ${mapData.map((m) => `
                             <tr data-is-unique-item=${(m.IsuniqueItem && 1) || 0}>
                                 <td class='result-cell-td'>
-                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'
-  }" data-pag:e="${m.page}" data-index="${m.index
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important' }" data-pag:e="${m.page}" data-index="${m.index
   }" title="查看对手阵容">
                                         ${m.name}
                                     </a>
@@ -1044,9 +1041,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                                     ${genItemsGroup(m.items)}
                                 </td>
                             </tr>
-                        `,
-      )
-      .join('')}
+                        `).join('')}
                     </tbody>
                 </table>
             `.trim();
