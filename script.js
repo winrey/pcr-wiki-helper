@@ -4,7 +4,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      3.1.5
+// @version      3.1.6
 // @description  辅助计算PCR手游的所需体力，总次数
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -1023,7 +1023,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                         ${mapData.map((m) => `
                             <tr data-is-unique-item=${(m.IsuniqueItem && 1) || 0}>
                                 <td class='result-cell-td'>
-                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important' }" data-pag:e="${m.page}" data-index="${m.index
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-pag:e="${m.page}" data-index="${m.index
   }" title="查看对手阵容">
                                         ${m.name}
                                     </a>
@@ -1067,29 +1067,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $(table)
           .find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')
           .click(changeItemCount);
-      const Debounce = function(fn, delay = 500, immediate = false) {
-        typeof delay === 'boolean' && (immediate = delay);
-        let timer = null; // 闭包存储setTimeout状态
-        return function() {
-          const self = this; // 事件源this
-          const args = arguments; // 接收事件源的event
-          if (timer) clearTimeout(timer); // 存在就清除执行fn的定时器
-          if (immediate) {
-            // 立即执行
-            const callNow = !timer; // 执行fn的状态
-            timer = setTimeout(function() {
-              timer = null;
-            }, delay);
-            if (callNow) fn.call(self, ...args);
-          } else {
-            // 非立即执行
-            timer = setTimeout(function() {
-              // 或者使用箭头函数将this指向dom
-              fn.call(self, ...args);
-            }, delay);
-          }
-        };
-      };
+
       const inputEntry = async (e) => {
         // 只有回车触发更改
         if (e.type !== 'blur' && e.keyCode != 13) {
@@ -1134,7 +1112,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         // 如有下个物品，跳转焦点
         jump(e);
       };
-      const fnChanged = Debounce(Debounce(inputEntry, 300), 300);
+      const fnChanged = _.debounce(inputEntry, 300);
       table.querySelectorAll('input[item-name]').forEach((inputDom) => {
         inputDom.addEventListener('input', fnChanged);
         inputDom.addEventListener('keyup', fnChanged);
@@ -1153,8 +1131,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         e.target.value = '';
       };
       table.querySelectorAll('input[orig-item-name]').forEach((inputDom) => {
-        inputDom.addEventListener('input', deltaInputEntry);
-        inputDom.addEventListener('keyup', deltaInputEntry);
+        inputDom.addEventListener('input', _.debounce(deltaInputEntry, 500));
+        inputDom.addEventListener('keyup', _.debounce(deltaInputEntry, 500));
+        inputDom.addEventListener('blur', _.debounce(deltaInputEntry, 0));
       });
       const isWanted = (e) => !e.target
           .closest('div')
