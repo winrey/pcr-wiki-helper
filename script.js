@@ -601,7 +601,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                         <div class="p-2 text-center mapDrop-item mr-2 helper-cell ${item.Unique && 'Unique' || ''
 
   }  ${(!item.count && `un--wanted`) || ''
-  }'">
+  }">
                             <div class='helper--calc-result-cell  ${(!item.count && `un--wanted`) || ''
   }'
                                  onclick
@@ -1099,7 +1099,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             i.value = newNum;
             const itemSpanDom = i.closest('div').querySelector('span.text-center');
             const totalNeed = itemSpanDom.getAttribute('data-total-need');
-            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : '已满';
+            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` :(i.closest('div').classList.toggle('un--wanted', true), i.closest('div').querySelector('div').classList.toggle('un--wanted', true), '已满');
             itemSpanDom.setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
             i.closest('div')
                 .querySelector('img')
