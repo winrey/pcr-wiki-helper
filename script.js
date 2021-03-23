@@ -4,7 +4,7 @@
 // @name         PCR图书馆辅助计算器
 // @namespace    http://tampermonkey.net/
 
-// @version      3.1.5
+// @version      3.1.6
 // @description  辅助计算PCR手游的所需体力，总次数
 // @author       winrey,colin,hymbz
 // @license      MIT
@@ -602,7 +602,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                         <div class="p-2 text-center mapDrop-item mr-2 helper-cell ${item.Unique && 'Unique' || ''
 
   }  ${(!item.count && `un--wanted`) || ''
-  }'">
+  }">
                             <div class='helper--calc-result-cell  ${(!item.count && `un--wanted`) || ''
   }'
                                  onclick
@@ -808,29 +808,27 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         text += enter;
       }
       // 设置dom移除监听 负责在生成链接后设置粘贴板
-      document.querySelector('.wating').parentElement.parentElement.parentElement.addEventListener(
-          'DOMNodeRemoved',
-          async () => {
-            GM.setClipboard(
-                `7天内打开链接,装备、角色数据完整保留,但将于${((d) =>
-                  `${d.getMonth() + 1}月${d.getDate()}号`)(
-                    new Date(new Date().getTime() + 7 * 86400000),
-                )}失效！${enter}请尽快打开链接:${surroundedByaBar(
-                    vue.exportNotice || 'network error,copy Text below',
-                )}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(
-                    4,
-                )}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(
-                    4,
-                )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`,
-            );
-            tips('备份成功', '复制完成,请尽快拷贝到其他地方保存');
-          },
-          {once: true},
-      );
+
       vue.isLoading = true;
-      backupTream();
+
+
+      const toClip=async () => {
+        GM.setClipboard(
+            `7天内打开链接,装备、角色数据完整保留,但将于${((d) => `${d.getMonth() + 1}月${d.getDate()}号`)(
+                new Date(new Date().getTime() + 7 * 86400000),
+            )}失效！${enter}请尽快打开链接:${surroundedByaBar(
+                vue.exportNotice || 'network error,copy Text below',
+            )}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(
+                4,
+            )}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(
+                4,
+            )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`,
+        );
+        tips('备份成功', '复制完成,请尽快拷贝到其他地方保存');
+      };
+      backupTream(toClip);
     }
-    function backupTream() {
+    function backupTream(callback) {
       const uuid = vue.uuid();
       const armory = _.concat([vue.teamList], [vue.itemList]);
       let teamList = JSON.stringify(armory);
@@ -846,6 +844,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           if (res == '200') {
             vue.isLoading = false;
             vue.exportNotice = 'https://pcredivewiki.tw/Armory?s=' + uuid;
+            callback();
           }
         },
       });
@@ -1024,7 +1023,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
                         ${mapData.map((m) => `
                             <tr data-is-unique-item=${(m.IsuniqueItem && 1) || 0}>
                                 <td class='result-cell-td'>
-                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important' }" data-pag:e="${m.page}" data-index="${m.index
+                                    <a href="#" class="helper--nav-to-level ${m.IsuniqueItem && 'helper--important'}" data-pag:e="${m.page}" data-index="${m.index
   }" title="查看对手阵容">
                                         ${m.name}
                                     </a>
@@ -1068,29 +1067,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       $(table)
           .find('.p-2.text-center.mapDrop-item.mr-2>div.helper--calc-result-cell')
           .click(changeItemCount);
-      const Debounce = function(fn, delay = 500, immediate = false) {
-        typeof delay === 'boolean' && (immediate = delay);
-        let timer = null; // 闭包存储setTimeout状态
-        return function() {
-          const self = this; // 事件源this
-          const args = arguments; // 接收事件源的event
-          if (timer) clearTimeout(timer); // 存在就清除执行fn的定时器
-          if (immediate) {
-            // 立即执行
-            const callNow = !timer; // 执行fn的状态
-            timer = setTimeout(function() {
-              timer = null;
-            }, delay);
-            if (callNow) fn.call(self, ...args);
-          } else {
-            // 非立即执行
-            timer = setTimeout(function() {
-              // 或者使用箭头函数将this指向dom
-              fn.call(self, ...args);
-            }, delay);
-          }
-        };
-      };
+
       const inputEntry = async (e) => {
         // 只有回车触发更改
         if (e.type !== 'blur' && e.keyCode != 13) {
@@ -1123,7 +1100,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
             i.value = newNum;
             const itemSpanDom = i.closest('div').querySelector('span.text-center');
             const totalNeed = itemSpanDom.getAttribute('data-total-need');
-            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` : '已满';
+            itemSpanDom.innerText = newNum < totalNeed ? `总需${totalNeed}` :(i.closest('div').classList.toggle('un--wanted', true), i.closest('div').querySelector('div').classList.toggle('un--wanted', true), '已满');
             itemSpanDom.setAttribute('title', `有${newNum} 缺${Math.max(totalNeed - newNum, 0)}`);
             i.closest('div')
                 .querySelector('img')
@@ -1135,11 +1112,11 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         // 如有下个物品，跳转焦点
         jump(e);
       };
-      const fnChanged = Debounce(Debounce(inputEntry, 300), 300);
+      const fnChanged = _.debounce(inputEntry, 300);
       table.querySelectorAll('input[item-name]').forEach((inputDom) => {
         inputDom.addEventListener('input', fnChanged);
         inputDom.addEventListener('keyup', fnChanged);
-        inputDom.addEventListener('blur', fnChanged);
+        inputDom.addEventListener('blur', inputEntry);
       });
       const deltaInputEntry = async (e) => {
         // 只有回车触发更改
@@ -1154,8 +1131,9 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         e.target.value = '';
       };
       table.querySelectorAll('input[orig-item-name]').forEach((inputDom) => {
-        inputDom.addEventListener('input', deltaInputEntry);
-        inputDom.addEventListener('keyup', deltaInputEntry);
+        inputDom.addEventListener('input', _.debounce(deltaInputEntry, 500));
+        inputDom.addEventListener('keyup', _.debounce(deltaInputEntry, 500));
+        inputDom.addEventListener('blur', deltaInputEntry);
       });
       const isWanted = (e) => !e.target
           .closest('div')
@@ -1312,8 +1290,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
     function appendName(mapName) {
       document.querySelector('nav.navbar.navbar-expand-md.navbar-dark.fixed-top').style.visibility =
         'hidden'; // 隐藏导航条
-      document.querySelector('.float-right.pcbtn.mr-3') &&
-        !document.querySelector('.float-right.pcbtn.mr-3').click(); // 显示魔物
+      document.querySelector('.main>div').__vue__.showMonster(); // 显示魔物
       const toName = (
           name,
           ElementFindByNameDotParent = document.querySelector('#H' + name.mapName).parentElement,
