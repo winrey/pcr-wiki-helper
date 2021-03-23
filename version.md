@@ -2,6 +2,9 @@
 
 ## 更新日志
 
+**3.1.6**  
+pcr好像准备改版了 最好预备
+
 **3.1.5**  
 fix 在独立装备的后面碎片修改动作逻辑
 
@@ -26,8 +29,28 @@ fix 在独立装备的后面碎片修改动作逻辑
 **2.6.4**  
 修复 2.6.3 引起的 bug
 
-## readme
+### readme 使用说明  
 
- 2.6.7 的使用
+#### 急刷装备
 
-![2.6.7]()
+![贪心排序](https://img.imgdb.cn/item/6059a1418322e6675c320309.gif)  
+
+#### 查看地图阵容  
+
+![查看地图](https://img.imgdb.cn/item/60599f438322e6675c301395.gif)  
+
+#### 截图  
+
+![导出图片](https://img.imgdb.cn/item/605988a18322e6675c20dc5c.gif)  
+
+#### 导出数据  
+
+![导出数据](https://img.imgdb.cn/item/60598eef8322e6675c24c8b2.gif)  
+
+#### 多选  
+
+![批量满足](https://img.imgdb.cn/item/6059a54e8322e6675c352fab.gif)
+
+#### 单手刷图  
+
+![刷图统计](https://img.imgdb.cn/item/605a26088322e6675c82362f.gif)
