@@ -807,29 +807,27 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
         text += enter;
       }
       // 设置dom移除监听 负责在生成链接后设置粘贴板
-      document.querySelector('.wating').parentElement.parentElement.parentElement.addEventListener(
-          'DOMNodeRemoved',
-          async () => {
-            GM.setClipboard(
-                `7天内打开链接,装备、角色数据完整保留,但将于${((d) =>
-                  `${d.getMonth() + 1}月${d.getDate()}号`)(
-                    new Date(new Date().getTime() + 7 * 86400000),
-                )}失效！${enter}请尽快打开链接:${surroundedByaBar(
-                    vue.exportNotice || 'network error,copy Text below',
-                )}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(
-                    4,
-                )}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(
-                    4,
-                )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`,
-            );
-            tips('备份成功', '复制完成,请尽快拷贝到其他地方保存');
-          },
-          {once: true},
-      );
+
       vue.isLoading = true;
-      backupTream();
+
+
+      const toClip=async () => {
+        GM.setClipboard(
+            `7天内打开链接,装备、角色数据完整保留,但将于${((d) => `${d.getMonth() + 1}月${d.getDate()}号`)(
+                new Date(new Date().getTime() + 7 * 86400000),
+            )}失效！${enter}请尽快打开链接:${surroundedByaBar(
+                vue.exportNotice || 'network error,copy Text below',
+            )}${enter}${howMuchSpace(4)}${enter}${howMuchSpace(
+                4,
+            )}并点击储存队伍${enter}${enter}${enter}${howMuchSpace(
+                4,
+            )}如果链接失效,可复制""(不含引号)内的字符"到文字汇入队伍的输入框${enter}"${vue.zipMyTeam()}"`,
+        );
+        tips('备份成功', '复制完成,请尽快拷贝到其他地方保存');
+      };
+      backupTream(toClip);
     }
-    function backupTream() {
+    function backupTream(callback) {
       const uuid = vue.uuid();
       const armory = _.concat([vue.teamList], [vue.itemList]);
       let teamList = JSON.stringify(armory);
@@ -845,6 +843,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
           if (res == '200') {
             vue.isLoading = false;
             vue.exportNotice = 'https://pcredivewiki.tw/Armory?s=' + uuid;
+            callback();
           }
         },
       });
