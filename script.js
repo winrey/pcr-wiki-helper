@@ -1116,7 +1116,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       table.querySelectorAll('input[item-name]').forEach((inputDom) => {
         inputDom.addEventListener('input', fnChanged);
         inputDom.addEventListener('keyup', fnChanged);
-        inputDom.addEventListener('blur', fnChanged);
+        inputDom.addEventListener('blur', inputEntry);
       });
       const deltaInputEntry = async (e) => {
         // 只有回车触发更改
@@ -1133,7 +1133,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
       table.querySelectorAll('input[orig-item-name]').forEach((inputDom) => {
         inputDom.addEventListener('input', _.debounce(deltaInputEntry, 500));
         inputDom.addEventListener('keyup', _.debounce(deltaInputEntry, 500));
-        inputDom.addEventListener('blur', _.debounce(deltaInputEntry, 0));
+        inputDom.addEventListener('blur', deltaInputEntry);
       });
       const isWanted = (e) => !e.target
           .closest('div')
