@@ -1289,8 +1289,7 @@ box-shadow:0 0 8px rgba(59, 224, 9, 0.75);
     function appendName(mapName) {
       document.querySelector('nav.navbar.navbar-expand-md.navbar-dark.fixed-top').style.visibility =
         'hidden'; // 隐藏导航条
-      document.querySelector('.float-right.pcbtn.mr-3') &&
-        !document.querySelector('.float-right.pcbtn.mr-3').click(); // 显示魔物
+      document.querySelector('.main>div').__vue__.showMonster(); // 显示魔物
       const toName = (
           name,
           ElementFindByNameDotParent = document.querySelector('#H' + name.mapName).parentElement,
